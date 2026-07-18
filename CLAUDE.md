@@ -94,3 +94,30 @@ Una funzionalità è finita quando:
 ## 10. Quando la specifica è ambigua
 
 Se un requisito non è coperto dalla specifica: scegliere l'interpretazione più semplice coerente con gli invarianti, implementarla dietro un default configurabile, e segnalarlo esplicitamente all'utente nel riepilogo del lavoro. Mai bloccare lo sviluppo in attesa, mai decidere in silenzio su questioni di dominio (prezzi, percentuali, regole commerciali): quelle vanno sempre chieste.
+
+---
+
+## 11. Stato di avanzamento
+
+- **Fase 1 (core) completata il 18/07/2026** e verificata dall'utente su Supabase reale: auth, materie prime, consumabili, ricette con sotto-ricette, menu, bevande, profili beveraggio, preventivi con snapshot e PDF.
+- **Prossima: fase 2** — clienti (schermata completa), eventi da preventivo, pagamenti, storico cliente, agenda.
+- La migrazione `0001_fase1_core.sql` è applicata sul progetto: da qui in poi **solo migrazioni additive nuove**, mai modificare la 0001.
+
+## 12. Note operative dell'ambiente
+
+- **Supabase**: progetto ref `xaxsvmurnfygjlaimgsk`. Credenziali in `.env.local` (mai committarlo; template in `.env.local.example`). La chiave è nel nuovo formato `sb_publishable_…`. **La CLI Supabase non è installata**: le migrazioni si applicano incollando il file SQL nel SQL Editor del dashboard.
+- **Next.js 16**: il middleware usa la convenzione `proxy.ts` (non `middleware.ts`). Le pagine in `app/(app)/` sono `force-dynamic` (impostato nel layout del gruppo): leggono dati per-utente, mai prerender statico.
+- **Comandi**: `npm run dev` (sviluppo), `npm test` (Vitest su `/lib/calc/` e `/lib/db/`), `npm run build`, `npm run lint`. Prima di consegnare: tutti e tre verdi.
+- **Denaro**: nel DB gli importi sono `integer` in centesimi con suffisso `_cent`; i form accettano euro con virgola e convertono in `lib/form.ts`.
+- **PDF cliente**: mostra solo i prezzi, mai i costi interni. Archiviazione su Storage rimandata alla fase 7.
+
+## 13. Decisioni interpretative già prese (fase 1)
+
+Comunicate all'utente e accettate; non ridiscuterle in silenzio, ma se una crea problemi nelle fasi successive va segnalata:
+
+- **Bambini nel beveraggio**: acqua al 100%, bibite e succhi alla quota configurabile (default 50%), niente alcolici e **niente caffè**.
+- **Caffè** modellato in unità `pz` (le bevande hanno unità chiusa `ml` | `pz`, coerenza verificata nel calcolo).
+- **Tabella `cliente` minima** anticipata in fase 1 (il preventivo la richiede); anagrafica completa e storico in fase 2.
+- **Food cost del preventivo senza sfrido** (formula §5.4 letterale); lo `sfrido_pct` è salvato sul preventivo e servirà alla lista spesa (fase 4).
+- **Margine target senza valore di default**: campo obbligatorio nel wizard (decisione commerciale dell'utente).
+- **Suggerimento riparto bianco/rosso da menu di pesce**: non implementato (le portate non codificano il "pesce"); eventualmente derivabile dagli allergeni.
