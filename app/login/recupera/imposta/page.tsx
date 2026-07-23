@@ -10,9 +10,9 @@ const messaggiErrore: Record<string, string> = {
 export default async function PaginaImpostaPassword({
   searchParams,
 }: {
-  searchParams: Promise<{ errore?: string; debug?: string }>;
+  searchParams: Promise<{ errore?: string }>;
 }) {
-  const { errore, debug } = await searchParams;
+  const { errore } = await searchParams;
 
   return (
     <main className="flex flex-1 items-center justify-center p-6">
@@ -22,11 +22,6 @@ export default async function PaginaImpostaPassword({
         {errore && (
           <p className="mt-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
             {messaggiErrore[errore] ?? "Si è verificato un errore. Riprova."}
-          </p>
-        )}
-        {debug && (
-          <p className="mt-2 rounded-md bg-amber-50 p-3 text-xs text-amber-800">
-            DEBUG: {debug}
           </p>
         )}
 
