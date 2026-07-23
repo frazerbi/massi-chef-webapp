@@ -16,9 +16,18 @@ export async function impostaNuovaPassword(formData: FormData): Promise<void> {
   }
 
   const supabase = await creaClientServer();
+  const { data: sessioneData } = await supabase.auth.getSession();
+  if (!sessioneData.session) {
+    // DEBUG temporaneo: nessuna sessione trovata al momento del submit.
+    redirect("/login/recupera/imposta?errore=generico&debug=no-session");
+  }
+
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    redirect("/login/recupera/imposta?errore=generico");
+    // DEBUG temporaneo: mostra il messaggio reale di Supabase.
+    redirect(
+      `/login/recupera/imposta?errore=generico&debug=${encodeURIComponent(error.message)}`,
+    );
   }
 
   redirect("/");
