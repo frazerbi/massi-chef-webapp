@@ -36,14 +36,20 @@ export async function aggiornaSessione(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const percorso = request.nextUrl.pathname;
-  const pubblica = percorso.startsWith("/login");
+  const percorsiPubblici = ["/login", "/auth/callback"];
+  const pubblica = percorsiPubblici.some(
+    (p) => percorso === p || percorso.startsWith(`${p}/`),
+  );
 
   if (!user && !pubblica) {
     const destinazione = request.nextUrl.clone();
     destinazione.pathname = "/login";
     return NextResponse.redirect(destinazione);
   }
-  if (user && pubblica) {
+  // Solo la pagina di login vera e propria respinge l'utente già autenticato:
+  // le sottopagine di recupero password restano accessibili anche con una
+  // sessione attiva (es. subito dopo lo scambio del codice di recovery).
+  if (user && percorso === "/login") {
     const destinazione = request.nextUrl.clone();
     destinazione.pathname = "/";
     return NextResponse.redirect(destinazione);
