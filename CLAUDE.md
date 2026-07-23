@@ -100,13 +100,18 @@ Se un requisito non è coperto dalla specifica: scegliere l'interpretazione più
 ## 11. Stato di avanzamento
 
 - **Fase 1 (core) completata il 18/07/2026** e verificata dall'utente su Supabase reale: auth, materie prime, consumabili, ricette con sotto-ricette, menu, bevande, profili beveraggio, preventivi con snapshot e PDF.
+- **Deploy su Vercel attivo dal 23/07/2026** (`https://massi-chef-webapp.vercel.app`), con flusso di recupero password implementato (era un gap: fase 1 copriva solo login email+password). Vedi §12 per i dettagli infrastrutturali.
 - **Prossima: fase 2** — clienti (schermata completa), eventi da preventivo, pagamenti, storico cliente, agenda.
 - La migrazione `0001_fase1_core.sql` è applicata sul progetto: da qui in poi **solo migrazioni additive nuove**, mai modificare la 0001.
 
 ## 12. Note operative dell'ambiente
 
 - **Supabase**: progetto ref `xaxsvmurnfygjlaimgsk`. Credenziali in `.env.local` (mai committarlo; template in `.env.local.example`). La chiave è nel nuovo formato `sb_publishable_…`. **La CLI Supabase non è installata**: le migrazioni si applicano incollando il file SQL nel SQL Editor del dashboard.
-- **Next.js 16**: il middleware usa la convenzione `proxy.ts` (non `middleware.ts`). Le pagine in `app/(app)/` sono `force-dynamic` (impostato nel layout del gruppo): leggono dati per-utente, mai prerender statico.
+- **Hosting: Vercel, non SiteGround.** Il piano SiteGround disponibile (`francescoz125.sg-host.com`) non ha il Node.js App Manager di Site Tools (niente Devs → Node.js) e via SSH manca `pm2`/`crontab`, senza reverse-proxy verso un processo Node persistente: non è utilizzabile come host applicativo per una app Next.js con route server/API. L'app è quindi deployata su **Vercel**, collegato al repo GitHub `frazerbi/massi-chef-webapp` con deploy automatico ad ogni push su `main`. SiteGround resta eventualmente utilizzabile solo per il DNS di un dominio custom (record verso Vercel), non per l'hosting applicativo.
+- **Variabili d'ambiente su Vercel**: `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` vanno impostate anche in Project → Settings → Environment Variables su Vercel (non bastano nel solo `.env.local` locale), perché le `NEXT_PUBLIC_*` sono incorporate a build time.
+- **Supabase Auth URL Configuration**: Site URL e Redirect URLs (Authentication → URL Configuration nel dashboard Supabase) devono includere il dominio Vercel effettivo (es. `https://massi-chef-webapp.vercel.app/**`) e, per test in locale, `http://localhost:3000/**`. Senza questo, i link via email (recupero password, inviti) falliscono con redirect non autorizzato.
+- **Recupero password**: implementato in `app/login/recupera/` (richiesta email), `app/auth/callback/route.ts` (scambio del `code` PKCE per la sessione) e `app/login/recupera/imposta/` (nuova password). L'URL di redirect è costruito dinamicamente dagli header della richiesta (`host`/`x-forwarded-host`), non hardcoded: funziona sia in locale sia su qualunque dominio Vercel senza bisogno di una variabile d'ambiente dedicata al site URL.
+- **Next.js 16**: il middleware usa la convenzione `proxy.ts` (non `middleware.ts`). Le pagine in `app/(app)/` sono `force-dynamic` (impostato nel layout del gruppo): leggono dati per-utente, mai prerender statico. Il proxy considera pubbliche (accessibili senza sessione) solo `/login` e `/auth/callback` con le rispettive sottopagine; solo `/login` esatto respinge un utente già autenticato — le sottopagine di recupero password restano accessibili anche con una sessione di recovery attiva.
 - **Comandi**: `npm run dev` (sviluppo), `npm test` (Vitest su `/lib/calc/` e `/lib/db/`), `npm run build`, `npm run lint`. Prima di consegnare: tutti e tre verdi.
 - **Denaro**: nel DB gli importi sono `integer` in centesimi con suffisso `_cent`; i form accettano euro con virgola e convertono in `lib/form.ts`.
 - **PDF cliente**: mostra solo i prezzi, mai i costi interni. Archiviazione su Storage rimandata alla fase 7.
@@ -121,3 +126,4 @@ Comunicate all'utente e accettate; non ridiscuterle in silenzio, ma se una crea 
 - **Food cost del preventivo senza sfrido** (formula §5.4 letterale); lo `sfrido_pct` è salvato sul preventivo e servirà alla lista spesa (fase 4).
 - **Margine target senza valore di default**: campo obbligatorio nel wizard (decisione commerciale dell'utente).
 - **Suggerimento riparto bianco/rosso da menu di pesce**: non implementato (le portate non codificano il "pesce"); eventualmente derivabile dagli allergeni.
+- **Recupero password** (23/07/2026): non era coperto dalla specifica né dalla fase 1; implementato come flusso minimo (email → link → nuova password, min. 8 caratteri) perché necessario per l'uso reale dell'account in produzione. Nessuna UI distingue email esistente/inesistente, per non permettere enumerazione account.
