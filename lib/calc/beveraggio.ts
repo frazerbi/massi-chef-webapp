@@ -60,14 +60,22 @@ export interface BevandaCalc {
   prezzoUnitarioCent: number;
 }
 
+/** Un prodotto assegnato a una categoria, con la quota di quantità che copre
+ * (BUG-001: più prodotti possono condividere la stessa categoria). */
+export interface ProdottoBeveraggioInput {
+  bevanda: BevandaCalc;
+  /** quota (0-100] della quantità di categoria coperta da questo prodotto */
+  quotaPct: number;
+}
+
 export interface RigaBeveraggioInput {
   categoria: CategoriaBevanda;
   quantitaATesta: number;
   unita: UnitaBevanda;
   /** consumo aggiuntivo per ora di servizio (voci a durata) */
   quantitaATestaOra: number;
-  /** articolo scelto per prezzare la categoria; assente = riga non prezzata */
-  bevanda?: BevandaCalc | null;
+  /** prodotti scelti per prezzare la categoria; vuoto = riga non prezzata */
+  prodotti: ProdottoBeveraggioInput[];
 }
 
 export interface OpzioniBeveraggio {
@@ -83,6 +91,19 @@ export interface OpzioniBeveraggio {
   correttivoPubblico: "normale" | "beve_poco" | "beve_molto";
 }
 
+export interface ProdottoBeveraggioRisultato {
+  bevanda: BevandaCalc;
+  quotaPct: number;
+  /** porzione di volume corretto assegnata a questo prodotto */
+  volumeAssegnato: number;
+  unitaNecessarie: number;
+  colli: number;
+  unitaAcquistate: number;
+  costoCent: number;
+  /** scorta residua stimata: capacità acquistata − volume assegnato */
+  scortaResidua: number;
+}
+
 export interface RigaBeveraggioRisultato {
   categoria: CategoriaBevanda;
   unita: UnitaBevanda;
@@ -90,12 +111,13 @@ export interface RigaBeveraggioRisultato {
   volumeTeorico: number;
   /** volume totale dopo correttivi e fattore di distribuzione */
   volumeCorretto: number;
-  bevanda: BevandaCalc | null;
-  unitaNecessarie: number | null;
-  colli: number | null;
-  unitaAcquistate: number | null;
+  /** un elemento per prodotto assegnato alla categoria (BUG-001) */
+  prodotti: ProdottoBeveraggioRisultato[];
+  /** somma delle quote assegnate: <100 = categoria parzialmente prezzata */
+  quotaCopertaPct: number;
+  /** somma dei costi dei prodotti; null se nessun prodotto assegnato */
   costoCent: number | null;
-  /** scorta residua stimata: capacità acquistata − volume corretto */
+  /** somma delle scorte residue dei prodotti; null se nessun prodotto assegnato */
   scortaResidua: number | null;
 }
 
@@ -203,9 +225,23 @@ export function calcolaBeveraggio(
     if (!Number.isFinite(r.quantitaATestaOra) || r.quantitaATestaOra < 0) {
       throw new Error(`Quantità a testa/ora non valida per ${r.categoria}`);
     }
-    if (r.bevanda && r.bevanda.unita !== r.unita) {
+    let quotaTotale = 0;
+    for (const p of r.prodotti) {
+      if (!Number.isFinite(p.quotaPct) || p.quotaPct <= 0) {
+        throw new Error(
+          `Quota non valida per "${p.bevanda.nome}" (${r.categoria}): ${p.quotaPct}`,
+        );
+      }
+      if (p.bevanda.unita !== r.unita) {
+        throw new Error(
+          `Unità incoerente per ${r.categoria}: riga in ${r.unita}, bevanda "${p.bevanda.nome}" in ${p.bevanda.unita}`,
+        );
+      }
+      quotaTotale += p.quotaPct;
+    }
+    if (quotaTotale > 100 + 1e-6) {
       throw new Error(
-        `Unità incoerente per ${r.categoria}: riga in ${r.unita}, bevanda "${r.bevanda.nome}" in ${r.bevanda.unita}`,
+        `Quote dei prodotti oltre il 100% per ${r.categoria}: ${quotaTotale}%`,
       );
     }
   }
@@ -260,25 +296,48 @@ export function calcolaBeveraggio(
     const volumeTeorico = (baseATesta.get(r.categoria) ?? 0) * ospiti;
     const volumeCorretto = (correttaATesta.get(r.categoria) ?? 0) * ospiti;
 
-    let unitaNecessarie: number | null = null;
-    let colli: number | null = null;
-    let unitaAcquistate: number | null = null;
-    let costoCent: number | null = null;
-    let scortaResidua: number | null = null;
+    const prodottiRisultato: ProdottoBeveraggioRisultato[] = [];
+    let quotaCopertaPct = 0;
+    let costoRigaCent = 0;
+    let scortaRigaResidua = 0;
 
-    if (r.bevanda && volumeCorretto > 0) {
-      if (r.bevanda.capacitaUnitaria <= 0 || r.bevanda.unitaPerCollo <= 0) {
-        throw new Error(`Dati bevanda non validi per ${r.categoria}`);
+    for (const p of r.prodotti) {
+      quotaCopertaPct += p.quotaPct;
+      let volumeAssegnato = 0;
+      let unitaNecessarie = 0;
+      let colli = 0;
+      let unitaAcquistate = 0;
+      let costoCent = 0;
+      let scortaResidua = 0;
+
+      if (volumeCorretto > 0) {
+        if (p.bevanda.capacitaUnitaria <= 0 || p.bevanda.unitaPerCollo <= 0) {
+          throw new Error(`Dati bevanda non validi per ${r.categoria}`);
+        }
+        volumeAssegnato = volumeCorretto * (p.quotaPct / 100);
+        unitaNecessarie = Math.ceil(volumeAssegnato / p.bevanda.capacitaUnitaria);
+        colli = Math.ceil(unitaNecessarie / p.bevanda.unitaPerCollo);
+        unitaAcquistate = colli * p.bevanda.unitaPerCollo;
+        costoCent = arrotondaCentesimi(unitaAcquistate * p.bevanda.prezzoUnitarioCent);
+        scortaResidua = unitaAcquistate * p.bevanda.capacitaUnitaria - volumeAssegnato;
       }
-      unitaNecessarie = Math.ceil(volumeCorretto / r.bevanda.capacitaUnitaria);
-      colli = Math.ceil(unitaNecessarie / r.bevanda.unitaPerCollo);
-      unitaAcquistate = colli * r.bevanda.unitaPerCollo;
-      costoCent = arrotondaCentesimi(
-        unitaAcquistate * r.bevanda.prezzoUnitarioCent,
-      );
-      scortaResidua = unitaAcquistate * r.bevanda.capacitaUnitaria - volumeCorretto;
+
+      costoRigaCent += costoCent;
+      scortaRigaResidua += scortaResidua;
       costoTotaleCent += costoCent;
-    } else if (volumeCorretto > 0) {
+      prodottiRisultato.push({
+        bevanda: p.bevanda,
+        quotaPct: p.quotaPct,
+        volumeAssegnato,
+        unitaNecessarie,
+        colli,
+        unitaAcquistate,
+        costoCent,
+        scortaResidua,
+      });
+    }
+
+    if (volumeCorretto > 0 && quotaCopertaPct < 100 - 1e-6) {
       righeSenzaPrezzo = true;
     }
 
@@ -287,12 +346,10 @@ export function calcolaBeveraggio(
       unita: r.unita,
       volumeTeorico,
       volumeCorretto,
-      bevanda: r.bevanda ?? null,
-      unitaNecessarie,
-      colli,
-      unitaAcquistate,
-      costoCent,
-      scortaResidua,
+      prodotti: prodottiRisultato,
+      quotaCopertaPct,
+      costoCent: r.prodotti.length > 0 ? costoRigaCent : null,
+      scortaResidua: r.prodotti.length > 0 ? scortaRigaResidua : null,
     });
   }
 

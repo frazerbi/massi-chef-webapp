@@ -139,11 +139,13 @@ function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
             {configBev.esposizione === "dettaglio" && (
               <>
                 {beveraggio.righe
-                  .filter((r) => r.unitaAcquistate != null)
+                  .filter((r) => r.prodotti.length > 0)
                   .map((r) => (
                     <Text key={r.categoria}>
-                      {ETICHETTE_CATEGORIA_BEVANDA[r.categoria]}: {r.unitaAcquistate}{" "}
-                      unità{r.bevanda ? ` (${r.bevanda.nome})` : ""}
+                      {ETICHETTE_CATEGORIA_BEVANDA[r.categoria]}:{" "}
+                      {r.prodotti
+                        .map((p) => `${p.unitaAcquistate} unità (${p.bevanda.nome})`)
+                        .join(", ")}
                     </Text>
                   ))}
               </>

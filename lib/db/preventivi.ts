@@ -21,6 +21,7 @@ import type {
   FoodCostSnapshot,
   Preventivo,
   PreventivoBeveraggio,
+  PreventivoBeveraggioProdotto,
   PreventivoBeveraggioRiga,
   PreventivoRiga,
   StatoPreventivo,
@@ -58,6 +59,8 @@ export interface PreventivoCompleto {
   righe: PreventivoRiga[];
   beveraggio: PreventivoBeveraggio | null;
   righeBeveraggio: PreventivoBeveraggioRiga[];
+  /** prodotti (bevande) assegnati alle righe di beveraggio (BUG-001: più per categoria) */
+  prodottiBeveraggio: PreventivoBeveraggioProdotto[];
 }
 
 export async function preventivoCompleto(id: string): Promise<PreventivoCompleto> {
@@ -88,6 +91,7 @@ export async function preventivoCompleto(id: string): Promise<PreventivoCompleto
   if (bevRes.error) throw new Error(bevRes.error.message);
 
   let righeBeveraggio: PreventivoBeveraggioRiga[] = [];
+  let prodottiBeveraggio: PreventivoBeveraggioProdotto[] = [];
   if (bevRes.data) {
     const { data, error: erroreRighe } = await supabase
       .from("preventivo_beveraggio_riga")
@@ -96,6 +100,19 @@ export async function preventivoCompleto(id: string): Promise<PreventivoCompleto
       .order("categoria");
     if (erroreRighe) throw new Error(erroreRighe.message);
     righeBeveraggio = (data ?? []) as PreventivoBeveraggioRiga[];
+
+    if (righeBeveraggio.length > 0) {
+      const { data: prodottiData, error: erroreProdotti } = await supabase
+        .from("preventivo_beveraggio_prodotto")
+        .select("*")
+        .in(
+          "preventivo_beveraggio_riga_id",
+          righeBeveraggio.map((r) => r.id),
+        )
+        .order("ordine");
+      if (erroreProdotti) throw new Error(erroreProdotti.message);
+      prodottiBeveraggio = (prodottiData ?? []) as PreventivoBeveraggioProdotto[];
+    }
   }
 
   return {
@@ -104,6 +121,7 @@ export async function preventivoCompleto(id: string): Promise<PreventivoCompleto
     righe: (righeRes.data ?? []) as PreventivoRiga[],
     beveraggio: (bevRes.data ?? null) as PreventivoBeveraggio | null,
     righeBeveraggio,
+    prodottiBeveraggio,
   };
 }
 
@@ -372,6 +390,9 @@ export async function aggiornaBeveraggio(
   if (error) throw new Error(`Aggiornamento beveraggio fallito: ${error.message}`);
 }
 
+/** Imposta la quantità teorica a testa di una categoria (il "quanto ce ne
+ * vuole"); l'assegnazione dei prodotti che la coprono è gestita a parte da
+ * aggiungiProdottoBeveraggio/rimuoviProdottoBeveraggio (BUG-001). */
 export async function impostaRigaBeveraggio(
   preventivoId: string,
   categoria: PreventivoBeveraggioRiga["categoria"],
@@ -379,7 +400,6 @@ export async function impostaRigaBeveraggio(
     quantita_a_testa: number;
     unita: PreventivoBeveraggioRiga["unita"];
     quantita_a_testa_ora?: number;
-    bevanda_id?: string | null;
   },
 ): Promise<void> {
   await verificaBozza(preventivoId);
@@ -402,7 +422,6 @@ export async function impostaRigaBeveraggio(
         quantita_a_testa: campi.quantita_a_testa,
         unita: campi.unita,
         quantita_a_testa_ora: campi.quantita_a_testa_ora ?? 0,
-        bevanda_id: campi.bevanda_id ?? null,
       },
       { onConflict: "preventivo_beveraggio_id,categoria" },
     );
@@ -422,6 +441,75 @@ export async function rimuoviRigaBeveraggio(
   if (error) throw new Error(`Rimozione riga beveraggio fallita: ${error.message}`);
 }
 
+const TOLLERANZA_QUOTA_PCT = 1e-6;
+
+/** BUG-001/BUG-002: assegna un prodotto a una riga di beveraggio con la
+ * quota di quantità che copre. Valida che la somma delle quote non superi
+ * 100 e che l'unità del prodotto coincida con quella della riga (mai
+ * conversioni implicite, invariante 5) prima di scrivere su DB. */
+export async function aggiungiProdottoBeveraggio(
+  preventivoId: string,
+  rigaId: string,
+  bevandaId: string,
+  quotaPct: number,
+): Promise<void> {
+  await verificaBozza(preventivoId);
+  if (!Number.isFinite(quotaPct) || quotaPct <= 0 || quotaPct > 100) {
+    throw new Error(`Quota non valida: ${quotaPct}`);
+  }
+  const supabase = await creaClientServer();
+  const [rigaRes, bevandaRes, esistentiRes] = await Promise.all([
+    supabase
+      .from("preventivo_beveraggio_riga")
+      .select("id, categoria, unita")
+      .eq("id", rigaId)
+      .single(),
+    supabase.from("bevanda").select("id, nome, unita").eq("id", bevandaId).single(),
+    supabase
+      .from("preventivo_beveraggio_prodotto")
+      .select("quota_pct")
+      .eq("preventivo_beveraggio_riga_id", rigaId),
+  ]);
+  if (rigaRes.error) throw new Error(`Riga beveraggio non trovata: ${rigaRes.error.message}`);
+  if (bevandaRes.error) throw new Error(`Bevanda non trovata: ${bevandaRes.error.message}`);
+  if (esistentiRes.error) throw new Error(esistentiRes.error.message);
+
+  if (bevandaRes.data.unita !== rigaRes.data.unita) {
+    throw new Error(
+      `Impossibile assegnare "${bevandaRes.data.nome}" (unità ${bevandaRes.data.unita}) a una riga di ${rigaRes.data.categoria} in ${rigaRes.data.unita}`,
+    );
+  }
+  const quotaEsistente = (esistentiRes.data ?? []).reduce(
+    (somma, p) => somma + Number(p.quota_pct),
+    0,
+  );
+  if (quotaEsistente + quotaPct > 100 + TOLLERANZA_QUOTA_PCT) {
+    throw new Error(
+      `Quota totale oltre il 100% per ${rigaRes.data.categoria}: già assegnato ${quotaEsistente}%, richiesto altro ${quotaPct}%`,
+    );
+  }
+
+  const { error } = await supabase.from("preventivo_beveraggio_prodotto").insert({
+    preventivo_beveraggio_riga_id: rigaId,
+    bevanda_id: bevandaId,
+    quota_pct: quotaPct,
+  });
+  if (error) throw new Error(`Assegnazione prodotto fallita: ${error.message}`);
+}
+
+export async function rimuoviProdottoBeveraggio(
+  preventivoId: string,
+  prodottoId: string,
+): Promise<void> {
+  await verificaBozza(preventivoId);
+  const supabase = await creaClientServer();
+  const { error } = await supabase
+    .from("preventivo_beveraggio_prodotto")
+    .delete()
+    .eq("id", prodottoId);
+  if (error) throw new Error(`Rimozione prodotto fallita: ${error.message}`);
+}
+
 // ---------------------------------------------------------------
 // Calcolo (bozza: live; inviato: da snapshot)
 // ---------------------------------------------------------------
@@ -431,6 +519,10 @@ export interface CalcoloPreventivo {
   /** costo unitario per riga (live per bozze, da snapshot per inviati) */
   costiRigheCent: Map<string, number | null>;
   beveraggio: RisultatoBeveraggio | null;
+  /** BUG-002: messaggio se il calcolo del beveraggio è fallito (dato incoerente
+   * già salvato); la pagina resta apribile e mostra le righe grezze per
+   * permettere all'utente di correggerle senza intervento diretto sul DB. */
+  erroreBeveraggio: string | null;
   totali: TotaliPreventivo;
   /** bevande disponibili per categoria (per la UI) */
   bevande: Bevanda[];
@@ -438,7 +530,7 @@ export interface CalcoloPreventivo {
 
 export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> {
   const dati = await preventivoCompleto(id);
-  const { preventivo, righe, beveraggio, righeBeveraggio } = dati;
+  const { preventivo, righe, beveraggio, righeBeveraggio, prodottiBeveraggio } = dati;
   const supabase = await creaClientServer();
   const { data: bevandeData, error: erroreBevande } = await supabase
     .from("bevanda")
@@ -472,52 +564,74 @@ export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> 
     }
   }
 
-  // beveraggio
+  // beveraggio (BUG-001: più prodotti possono coprire la stessa categoria)
+  const prodottiPerRiga = new Map<string, typeof prodottiBeveraggio>();
+  for (const p of prodottiBeveraggio) {
+    if (!prodottiPerRiga.has(p.preventivo_beveraggio_riga_id)) {
+      prodottiPerRiga.set(p.preventivo_beveraggio_riga_id, []);
+    }
+    prodottiPerRiga.get(p.preventivo_beveraggio_riga_id)!.push(p);
+  }
+
   let risultatoBeveraggio: RisultatoBeveraggio | null = null;
+  let erroreBeveraggio: string | null = null;
   if (beveraggio?.attivo && righeBeveraggio.length > 0) {
-    const righeInput: RigaBeveraggioInput[] = righeBeveraggio.map((r) => {
-      let bevanda = r.bevanda_id ? bevandePerId.get(r.bevanda_id) ?? null : null;
-      // per i preventivi inviati i prezzi vengono dallo snapshot, non dal listino corrente
-      if (!eBozza && snapshot?.beveraggio) {
-        const congelata = snapshot.beveraggio.righe.find(
-          (s) => s.categoria === r.categoria,
-        );
-        if (congelata && bevanda && congelata.prezzo_unitario_cent != null) {
-          bevanda = {
-            ...bevanda,
-            prezzo_unitario_cent: congelata.prezzo_unitario_cent,
-            capacita_unitaria: congelata.capacita_unitaria ?? bevanda.capacita_unitaria,
-            unita_per_collo: congelata.unita_per_collo ?? bevanda.unita_per_collo,
-          };
-        }
-      }
-      return {
-        categoria: r.categoria,
-        quantitaATesta: Number(r.quantita_a_testa),
-        unita: r.unita,
-        quantitaATestaOra: Number(r.quantita_a_testa_ora),
-        bevanda: bevanda
-          ? {
-              id: bevanda.id,
-              nome: bevanda.nome,
-              capacitaUnitaria: Number(bevanda.capacita_unitaria),
-              unita: bevanda.unita,
-              unitaPerCollo: Number(bevanda.unita_per_collo),
-              prezzoUnitarioCent: Number(bevanda.prezzo_unitario_cent),
+    try {
+      const righeInput: RigaBeveraggioInput[] = righeBeveraggio.map((r) => {
+        const assegnati = prodottiPerRiga.get(r.id) ?? [];
+        const prodottiInput = assegnati.flatMap((assegnato) => {
+          const bevanda = bevandePerId.get(assegnato.bevanda_id);
+          if (!bevanda) return [];
+          let bevandaCalc = bevanda;
+          // per i preventivi inviati i prezzi vengono dallo snapshot, non dal listino corrente
+          if (!eBozza && snapshot?.beveraggio) {
+            const congelata = snapshot.beveraggio.righe.find(
+              (s) => s.categoria === r.categoria && s.bevanda_id === assegnato.bevanda_id,
+            );
+            if (congelata?.prezzo_unitario_cent != null) {
+              bevandaCalc = {
+                ...bevanda,
+                prezzo_unitario_cent: congelata.prezzo_unitario_cent,
+                capacita_unitaria: congelata.capacita_unitaria ?? bevanda.capacita_unitaria,
+                unita_per_collo: congelata.unita_per_collo ?? bevanda.unita_per_collo,
+              };
             }
-          : null,
-      };
-    });
-    risultatoBeveraggio = calcolaBeveraggio(righeInput, {
-      ospitiAdulti: preventivo.numero_ospiti_adulti,
-      ospitiBambini: preventivo.numero_ospiti_bambini,
-      oreServizio: Number(beveraggio.ore_servizio),
-      fattoreDistribuzionePct: Number(beveraggio.fattore_distribuzione_pct),
-      quotaBibiteBambiniPct: Number(beveraggio.quota_bibite_bambini_pct),
-      correttivoStagioneCalda: beveraggio.correttivo_stagione_calda,
-      correttivoEventoLungo: beveraggio.correttivo_evento_lungo,
-      correttivoPubblico: beveraggio.correttivo_pubblico,
-    });
+          }
+          return [
+            {
+              bevanda: {
+                id: bevandaCalc.id,
+                nome: bevandaCalc.nome,
+                capacitaUnitaria: Number(bevandaCalc.capacita_unitaria),
+                unita: bevandaCalc.unita,
+                unitaPerCollo: Number(bevandaCalc.unita_per_collo),
+                prezzoUnitarioCent: Number(bevandaCalc.prezzo_unitario_cent),
+              },
+              quotaPct: Number(assegnato.quota_pct),
+            },
+          ];
+        });
+        return {
+          categoria: r.categoria,
+          quantitaATesta: Number(r.quantita_a_testa),
+          unita: r.unita,
+          quantitaATestaOra: Number(r.quantita_a_testa_ora),
+          prodotti: prodottiInput,
+        };
+      });
+      risultatoBeveraggio = calcolaBeveraggio(righeInput, {
+        ospitiAdulti: preventivo.numero_ospiti_adulti,
+        ospitiBambini: preventivo.numero_ospiti_bambini,
+        oreServizio: Number(beveraggio.ore_servizio),
+        fattoreDistribuzionePct: Number(beveraggio.fattore_distribuzione_pct),
+        quotaBibiteBambiniPct: Number(beveraggio.quota_bibite_bambini_pct),
+        correttivoStagioneCalda: beveraggio.correttivo_stagione_calda,
+        correttivoEventoLungo: beveraggio.correttivo_evento_lungo,
+        correttivoPubblico: beveraggio.correttivo_pubblico,
+      });
+    } catch (e) {
+      erroreBeveraggio = (e as Error).message;
+    }
   }
 
   const costoBeveraggioCent =
@@ -538,7 +652,14 @@ export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> 
     margineTargetPct: Number(preventivo.margine_target_pct),
   });
 
-  return { dati, costiRigheCent, beveraggio: risultatoBeveraggio, totali, bevande };
+  return {
+    dati,
+    costiRigheCent,
+    beveraggio: risultatoBeveraggio,
+    erroreBeveraggio,
+    totali,
+    bevande,
+  };
 }
 
 // ---------------------------------------------------------------
@@ -560,6 +681,11 @@ async function registraStato(preventivoId: string, stato: StatoPreventivo) {
 export async function inviaPreventivo(id: string): Promise<void> {
   const preventivo = await verificaBozza(id);
   const calcolo = await calcolaPreventivo(id);
+  if (calcolo.erroreBeveraggio) {
+    throw new Error(
+      `Impossibile inviare: risolvi prima il beveraggio (${calcolo.erroreBeveraggio})`,
+    );
+  }
 
   const snapshot: FoodCostSnapshot = {
     congelato_at: new Date().toISOString(),
@@ -570,15 +696,19 @@ export async function inviaPreventivo(id: string): Promise<void> {
     beveraggio: calcolo.beveraggio
       ? {
           costo_totale_cent: calcolo.beveraggio.costoTotaleCent,
-          righe: calcolo.beveraggio.righe.map((r) => ({
-            categoria: r.categoria,
-            bevanda_id: r.bevanda?.id ?? null,
-            prezzo_unitario_cent: r.bevanda?.prezzoUnitarioCent ?? null,
-            capacita_unitaria: r.bevanda?.capacitaUnitaria ?? null,
-            unita_per_collo: r.bevanda?.unitaPerCollo ?? null,
-            colli: r.colli,
-            costo_cent: r.costoCent,
-          })),
+          // una riga per prodotto assegnato (BUG-001: più prodotti per categoria)
+          righe: calcolo.beveraggio.righe.flatMap((r) =>
+            r.prodotti.map((p) => ({
+              categoria: r.categoria,
+              bevanda_id: p.bevanda.id,
+              quota_pct: p.quotaPct,
+              prezzo_unitario_cent: p.bevanda.prezzoUnitarioCent,
+              capacita_unitaria: p.bevanda.capacitaUnitaria,
+              unita_per_collo: p.bevanda.unitaPerCollo,
+              colli: p.colli,
+              costo_cent: p.costoCent,
+            })),
+          ),
         }
       : null,
   };
@@ -649,7 +779,7 @@ export async function duplicaPreventivo(
   id: string,
   comeRevisione = false,
 ): Promise<string> {
-  const { preventivo, righe, beveraggio, righeBeveraggio } =
+  const { preventivo, righe, beveraggio, righeBeveraggio, prodottiBeveraggio } =
     await preventivoCompleto(id);
   if (comeRevisione && preventivo.stato === "bozza") {
     throw new Error("Le bozze si modificano direttamente: nessuna revisione necessaria");
@@ -715,7 +845,7 @@ export async function duplicaPreventivo(
       .single();
     if (erroreBev) throw new Error(erroreBev.message);
     if (righeBeveraggio.length > 0) {
-      const { error: erroreRigheBev } = await supabase
+      const { data: nuoveRighe, error: erroreRigheBev } = await supabase
         .from("preventivo_beveraggio_riga")
         .insert(
           righeBeveraggio.map((r) => ({
@@ -724,10 +854,39 @@ export async function duplicaPreventivo(
             quantita_a_testa: r.quantita_a_testa,
             unita: r.unita,
             quantita_a_testa_ora: r.quantita_a_testa_ora,
-            bevanda_id: r.bevanda_id,
           })),
-        );
+        )
+        .select("id, categoria");
       if (erroreRigheBev) throw new Error(erroreRigheBev.message);
+
+      // BUG-001: copia anche i prodotti assegnati a ogni riga, rilegandoli
+      // alla nuova riga con la stessa categoria (categoria è unica per riga)
+      const nuovaRigaIdPerCategoria = new Map(
+        (nuoveRighe ?? []).map((r) => [r.categoria, r.id as string]),
+      );
+      const prodottiDaCopiare = prodottiBeveraggio.flatMap((p) => {
+        const rigaOrigine = righeBeveraggio.find(
+          (r) => r.id === p.preventivo_beveraggio_riga_id,
+        );
+        const nuovaRigaId = rigaOrigine
+          ? nuovaRigaIdPerCategoria.get(rigaOrigine.categoria)
+          : undefined;
+        if (!nuovaRigaId) return [];
+        return [
+          {
+            preventivo_beveraggio_riga_id: nuovaRigaId,
+            bevanda_id: p.bevanda_id,
+            quota_pct: p.quota_pct,
+            ordine: p.ordine,
+          },
+        ];
+      });
+      if (prodottiDaCopiare.length > 0) {
+        const { error: erroreProdotti } = await supabase
+          .from("preventivo_beveraggio_prodotto")
+          .insert(prodottiDaCopiare);
+        if (erroreProdotti) throw new Error(erroreProdotti.message);
+      }
     }
   }
 

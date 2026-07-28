@@ -20,11 +20,13 @@ import {
   azioneAggiornaBeveraggio,
   azioneAggiornaPreventivo,
   azioneAggiornaRigaPrezzo,
+  azioneAggiungiProdottoBeveraggio,
   azioneAggiungiRigaExtra,
   azioneAggiungiRigaRicetta,
   azioneCambiaStato,
   azioneDuplica,
   azioneImpostaRigaBeveraggio,
+  azioneRimuoviProdottoBeveraggio,
   azioneRimuoviRiga,
   azioneRimuoviRigaBeveraggio,
 } from "../actions";
@@ -43,8 +45,15 @@ export default async function PaginaPreventivo({
     calcolaPreventivo(id),
     elencoRicette(true),
   ]);
-  const { dati, costiRigheCent, beveraggio, totali, bevande } = calcolo;
-  const { preventivo, cliente, righe, beveraggio: configBev, righeBeveraggio } = dati;
+  const { dati, costiRigheCent, beveraggio, erroreBeveraggio, totali, bevande } = calcolo;
+  const {
+    preventivo,
+    cliente,
+    righe,
+    beveraggio: configBev,
+    righeBeveraggio,
+    prodottiBeveraggio,
+  } = dati;
   const eBozza = preventivo.stato === "bozza";
   const ospitiTotali =
     preventivo.numero_ospiti_adulti + preventivo.numero_ospiti_bambini;
@@ -53,6 +62,16 @@ export default async function PaginaPreventivo({
   for (const b of bevande.filter((b) => !b.deleted_at)) {
     if (!bevandePerCategoria.has(b.categoria)) bevandePerCategoria.set(b.categoria, []);
     bevandePerCategoria.get(b.categoria)!.push(b);
+  }
+  const bevandePerId = new Map(bevande.map((b) => [b.id, b]));
+
+  // BUG-001: una riga di beveraggio può avere più prodotti assegnati
+  const prodottiPerRiga = new Map<string, typeof prodottiBeveraggio>();
+  for (const p of prodottiBeveraggio) {
+    if (!prodottiPerRiga.has(p.preventivo_beveraggio_riga_id)) {
+      prodottiPerRiga.set(p.preventivo_beveraggio_riga_id, []);
+    }
+    prodottiPerRiga.get(p.preventivo_beveraggio_riga_id)!.push(p);
   }
 
   return (
@@ -397,17 +416,61 @@ export default async function PaginaPreventivo({
                 </form>
               )}
 
-              {beveraggio ? (
+              {erroreBeveraggio && (
+                <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-900">
+                  <p className="font-medium">
+                    ⚠ Impossibile calcolare il beveraggio: {erroreBeveraggio}
+                  </p>
+                  <p className="mt-1">
+                    Il resto del preventivo resta consultabile. Rimuovi qui sotto il
+                    prodotto o la categoria che causa l&apos;errore per sbloccare il calcolo.
+                  </p>
+                  <ul className="mt-3 space-y-2">
+                    {righeBeveraggio.map((rDb) => (
+                      <li key={rDb.id}>
+                        <span className="font-medium">
+                          {ETICHETTE_CATEGORIA_BEVANDA[rDb.categoria]}
+                        </span>{" "}
+                        ({rDb.unita})
+                        {(prodottiPerRiga.get(rDb.id) ?? []).map((p) => (
+                          <span key={p.id} className="ml-2 inline-flex items-center gap-1">
+                            · {bevandePerId.get(p.bevanda_id)?.nome ?? p.bevanda_id} (
+                            {bevandePerId.get(p.bevanda_id)?.unita ?? "?"}, {Number(p.quota_pct)}%)
+                            {eBozza && (
+                              <form action={azioneRimuoviProdottoBeveraggio} className="inline">
+                                <input type="hidden" name="preventivo_id" value={preventivo.id} />
+                                <input type="hidden" name="prodotto_id" value={p.id} />
+                                <button type="submit" className="text-red-700 underline">
+                                  rimuovi
+                                </button>
+                              </form>
+                            )}
+                          </span>
+                        ))}
+                        {eBozza && (
+                          <form action={azioneRimuoviRigaBeveraggio} className="ml-2 inline">
+                            <input type="hidden" name="preventivo_id" value={preventivo.id} />
+                            <input type="hidden" name="riga_id" value={rDb.id} />
+                            <button type="submit" className="text-red-700 underline">
+                              rimuovi categoria
+                            </button>
+                          </form>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {!erroreBeveraggio && beveraggio ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[820px]">
+                  <table className="w-full min-w-[900px]">
                     <thead className="border-b border-stone-200">
                       <tr>
                         <th className={classiTh}>Categoria</th>
                         <th className={classiTh}>Teorico</th>
                         <th className={classiTh}>Corretto</th>
-                        <th className={classiTh}>Bevanda</th>
-                        <th className={classiTh}>Unità</th>
-                        <th className={classiTh}>Colli</th>
+                        <th className={classiTh}>Prodotti</th>
                         <th className={classiTh}>Scorta residua</th>
                         <th className={classiTh}>Costo</th>
                         <th className={classiTh}></th>
@@ -418,8 +481,21 @@ export default async function PaginaPreventivo({
                         const rigaDb = righeBeveraggio.find(
                           (x) => x.categoria === r.categoria,
                         );
+                        const prodottiDb = rigaDb ? prodottiPerRiga.get(rigaDb.id) ?? [] : [];
+                        // BUG-002: solo prodotti con unità compatibile sono selezionabili
+                        const bevandeCompatibili = rigaDb
+                          ? (bevandePerCategoria.get(r.categoria) ?? []).filter(
+                              (b) =>
+                                b.unita === rigaDb.unita &&
+                                !r.prodotti.some((p) => p.bevanda.id === b.id),
+                            )
+                          : [];
+                        const quotaResidua = Math.max(
+                          0,
+                          Math.round((100 - r.quotaCopertaPct) * 100) / 100,
+                        );
                         return (
-                          <tr key={r.categoria}>
+                          <tr key={r.categoria} className="align-top">
                             <td className={`${classiTd} font-medium`}>
                               {ETICHETTE_CATEGORIA_BEVANDA[r.categoria]}
                             </td>
@@ -430,46 +506,81 @@ export default async function PaginaPreventivo({
                               {Math.round(r.volumeCorretto).toLocaleString("it-IT")} {r.unita}
                             </td>
                             <td className={classiTd}>
-                              {eBozza && rigaDb ? (
+                              <ul className="space-y-1.5">
+                                {r.prodotti.map((p) => {
+                                  const prodottoDb = prodottiDb.find(
+                                    (pp) => pp.bevanda_id === p.bevanda.id,
+                                  );
+                                  return (
+                                    <li
+                                      key={p.bevanda.id}
+                                      className="flex flex-wrap items-center gap-2 text-sm"
+                                    >
+                                      <span className="font-medium">{p.bevanda.nome}</span>
+                                      <span className="text-stone-500">
+                                        {p.quotaPct}% · {p.colli} colli · {formattaEuro(p.costoCent)}
+                                      </span>
+                                      {eBozza && prodottoDb && (
+                                        <form action={azioneRimuoviProdottoBeveraggio}>
+                                          <input
+                                            type="hidden"
+                                            name="preventivo_id"
+                                            value={preventivo.id}
+                                          />
+                                          <input
+                                            type="hidden"
+                                            name="prodotto_id"
+                                            value={prodottoDb.id}
+                                          />
+                                          <button type="submit" className={classiBottoneSecondario}>
+                                            ×
+                                          </button>
+                                        </form>
+                                      )}
+                                    </li>
+                                  );
+                                })}
+                                {r.prodotti.length === 0 && (
+                                  <li className="text-stone-500">Nessun prodotto assegnato</li>
+                                )}
+                              </ul>
+                              {r.volumeCorretto > 0 && r.quotaCopertaPct < 100 - 1e-6 && (
+                                <p className="mt-1 text-xs text-amber-700">
+                                  ⚠ copertura {r.quotaCopertaPct}% — costo parziale
+                                </p>
+                              )}
+                              {eBozza && rigaDb && quotaResidua > 0 && bevandeCompatibili.length > 0 && (
                                 <form
-                                  action={azioneImpostaRigaBeveraggio}
-                                  className="flex items-center gap-2"
+                                  action={azioneAggiungiProdottoBeveraggio}
+                                  className="mt-2 flex flex-wrap items-center gap-2"
                                 >
                                   <input type="hidden" name="preventivo_id" value={preventivo.id} />
-                                  <input type="hidden" name="categoria" value={r.categoria} />
-                                  <input
-                                    type="hidden"
-                                    name="quantita"
-                                    value={String(rigaDb.quantita_a_testa)}
-                                  />
-                                  <input type="hidden" name="unita" value={rigaDb.unita} />
-                                  <input
-                                    type="hidden"
-                                    name="quantita_ora"
-                                    value={String(rigaDb.quantita_a_testa_ora)}
-                                  />
+                                  <input type="hidden" name="riga_id" value={rigaDb.id} />
                                   <select
                                     name="bevanda_id"
-                                    defaultValue={rigaDb.bevanda_id ?? ""}
+                                    required
                                     className="rounded-md border border-stone-300 px-2 py-1 text-sm"
                                   >
-                                    <option value="">— scegli —</option>
-                                    {(bevandePerCategoria.get(r.categoria) ?? []).map((b) => (
+                                    <option value="">— aggiungi prodotto —</option>
+                                    {bevandeCompatibili.map((b) => (
                                       <option key={b.id} value={b.id}>
                                         {b.nome}
                                       </option>
                                     ))}
                                   </select>
+                                  <input
+                                    name="quota"
+                                    inputMode="decimal"
+                                    defaultValue={String(quotaResidua)}
+                                    className="w-16 rounded-md border border-stone-300 px-2 py-1 text-sm"
+                                  />
+                                  <span className="text-xs text-stone-500">%</span>
                                   <button type="submit" className={classiBottoneSecondario}>
-                                    OK
+                                    Aggiungi
                                   </button>
                                 </form>
-                              ) : (
-                                r.bevanda?.nome ?? "—"
                               )}
                             </td>
-                            <td className={classiTd}>{r.unitaNecessarie ?? "—"}</td>
-                            <td className={classiTd}>{r.colli ?? "—"}</td>
                             <td className={classiTd}>
                               {r.scortaResidua != null
                                 ? `${Math.round(r.scortaResidua).toLocaleString("it-IT")} ${r.unita}`
@@ -484,7 +595,7 @@ export default async function PaginaPreventivo({
                                   <input type="hidden" name="preventivo_id" value={preventivo.id} />
                                   <input type="hidden" name="riga_id" value={rigaDb.id} />
                                   <button type="submit" className={classiBottoneSecondario}>
-                                    ×
+                                    Rimuovi
                                   </button>
                                 </form>
                               )}
@@ -506,17 +617,20 @@ export default async function PaginaPreventivo({
                     </span>
                     {beveraggio.righeSenzaPrezzo && (
                       <span className="ml-3 text-amber-700">
-                        ⚠ alcune righe non hanno una bevanda associata: costo incompleto
+                        ⚠ alcune categorie non hanno (o non hanno del tutto) un prodotto
+                        associato: costo incompleto
                       </span>
                     )}
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-stone-500">
-                  {configBev.attivo
-                    ? "Nessuna riga beveraggio: aggiungi categorie qui sotto."
-                    : "Beveraggio disattivato (solo servizio). Riattivalo sopra oppure aggiungi una riga di diritto di tappo tra le voci extra."}
-                </p>
+                !erroreBeveraggio && (
+                  <p className="text-sm text-stone-500">
+                    {configBev.attivo
+                      ? "Nessuna riga beveraggio: aggiungi categorie qui sotto."
+                      : "Beveraggio disattivato (solo servizio). Riattivalo sopra oppure aggiungi una riga di diritto di tappo tra le voci extra."}
+                  </p>
+                )
               )}
 
               {eBozza && configBev.attivo && (

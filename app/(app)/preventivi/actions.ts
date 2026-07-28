@@ -7,12 +7,14 @@ import {
   aggiornaBeveraggio,
   aggiornaPreventivo,
   aggiornaRiga,
+  aggiungiProdottoBeveraggio,
   aggiungiRigaExtra,
   aggiungiRigaRicetta,
   cambiaStatoPreventivo,
   creaPreventivo,
   duplicaPreventivo,
   impostaRigaBeveraggio,
+  rimuoviProdottoBeveraggio,
   rimuoviRiga,
   rimuoviRigaBeveraggio,
 } from "@/lib/db/preventivi";
@@ -151,7 +153,6 @@ export async function azioneImpostaRigaBeveraggio(formData: FormData): Promise<v
       quantita_a_testa: parseNumero(formData.get("quantita"), "quantità a testa"),
       unita: parseTesto(formData.get("unita"), "unità") as UnitaBevanda,
       quantita_a_testa_ora: parseNumero(formData.get("quantita_ora") || "0", "quantità/ora"),
-      bevanda_id: parseTestoOpzionale(formData.get("bevanda_id")),
     },
   );
   revalidatePath(`/preventivi/${preventivoId}`);
@@ -160,6 +161,28 @@ export async function azioneImpostaRigaBeveraggio(formData: FormData): Promise<v
 export async function azioneRimuoviRigaBeveraggio(formData: FormData): Promise<void> {
   const preventivoId = parseTesto(formData.get("preventivo_id"), "preventivo");
   await rimuoviRigaBeveraggio(preventivoId, parseTesto(formData.get("riga_id"), "riga"));
+  revalidatePath(`/preventivi/${preventivoId}`);
+}
+
+// BUG-001: un prodotto in più sotto la stessa categoria non sovrascrive più
+// quello già assegnato, ma si aggiunge con la propria quota.
+export async function azioneAggiungiProdottoBeveraggio(formData: FormData): Promise<void> {
+  const preventivoId = parseTesto(formData.get("preventivo_id"), "preventivo");
+  await aggiungiProdottoBeveraggio(
+    preventivoId,
+    parseTesto(formData.get("riga_id"), "riga"),
+    parseTesto(formData.get("bevanda_id"), "bevanda"),
+    parseNumero(formData.get("quota"), "quota"),
+  );
+  revalidatePath(`/preventivi/${preventivoId}`);
+}
+
+export async function azioneRimuoviProdottoBeveraggio(formData: FormData): Promise<void> {
+  const preventivoId = parseTesto(formData.get("preventivo_id"), "preventivo");
+  await rimuoviProdottoBeveraggio(
+    preventivoId,
+    parseTesto(formData.get("prodotto_id"), "prodotto"),
+  );
   revalidatePath(`/preventivi/${preventivoId}`);
 }
 

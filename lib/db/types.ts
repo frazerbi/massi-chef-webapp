@@ -249,7 +249,18 @@ export interface PreventivoBeveraggioRiga extends RigaBase {
   quantita_a_testa: number;
   unita: UnitaBevanda;
   quantita_a_testa_ora: number;
+  /** @deprecated sostituito da PreventivoBeveraggioProdotto (più prodotti per categoria) */
   bevanda_id: string | null;
+}
+
+/** Prodotto (bevanda) assegnato a una riga di beveraggio, con la quota della
+ * quantità di categoria che copre. Più righe possono condividere la stessa
+ * riga di beveraggio (quindi la stessa categoria) con quote diverse. */
+export interface PreventivoBeveraggioProdotto extends RigaBase {
+  preventivo_beveraggio_riga_id: string;
+  bevanda_id: string;
+  quota_pct: number;
+  ordine: number;
 }
 
 /** Snapshot congelato al passaggio bozza -> inviato (invariante di immutabilità). */
@@ -258,9 +269,12 @@ export interface FoodCostSnapshot {
   righe: Array<{ riga_id: string; costo_unitario_cent: number }>;
   beveraggio: {
     costo_totale_cent: number;
+    /** una riga per prodotto assegnato (più righe possono condividere la categoria) */
     righe: Array<{
       categoria: CategoriaBevanda;
       bevanda_id: string | null;
+      /** assente nei preventivi congelati prima dell'introduzione dei prodotti multipli: trattare come 100 */
+      quota_pct: number | null;
       prezzo_unitario_cent: number | null;
       capacita_unitaria: number | null;
       unita_per_collo: number | null;

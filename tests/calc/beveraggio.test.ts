@@ -30,10 +30,20 @@ function bevanda(parziale: Partial<BevandaCalc> & { id: string }): BevandaCalc {
 }
 
 function riga(
-  parziale: Partial<RigaBeveraggioInput> &
-    Pick<RigaBeveraggioInput, "categoria" | "quantitaATesta">,
+  parziale: Partial<Omit<RigaBeveraggioInput, "prodotti">> &
+    Pick<RigaBeveraggioInput, "categoria" | "quantitaATesta"> & {
+      /** scorciatoia: un solo prodotto a copertura 100% */
+      bevanda?: BevandaCalc;
+      prodotti?: RigaBeveraggioInput["prodotti"];
+    },
 ): RigaBeveraggioInput {
-  return { unita: "ml", quantitaATestaOra: 0, ...parziale };
+  const { bevanda, prodotti, ...resto } = parziale;
+  return {
+    unita: "ml",
+    quantitaATestaOra: 0,
+    prodotti: prodotti ?? (bevanda ? [{ bevanda, quotaPct: 100 }] : []),
+    ...resto,
+  };
 }
 
 describe("calcolaBeveraggio (§5.11)", () => {
@@ -158,12 +168,110 @@ describe("calcolaBeveraggio (§5.11)", () => {
     );
     const x = r.righe[0];
     // 101 × 600 = 60600 ml -> 61 bottiglie -> 11 colli -> 66 unità
-    expect(x.unitaNecessarie).toBe(61);
-    expect(x.colli).toBe(11);
-    expect(x.unitaAcquistate).toBe(66);
+    expect(x.prodotti[0].unitaNecessarie).toBe(61);
+    expect(x.prodotti[0].colli).toBe(11);
+    expect(x.prodotti[0].unitaAcquistate).toBe(66);
+    expect(x.prodotti[0].costoCent).toBe(66 * 80);
+    expect(x.prodotti[0].scortaResidua).toBe(66 * 1000 - 60600);
+    // gli aggregati di riga coincidono col singolo prodotto
     expect(x.costoCent).toBe(66 * 80);
     expect(x.scortaResidua).toBe(66 * 1000 - 60600);
     expect(r.costoTotaleCent).toBe(66 * 80);
+  });
+
+  it("BUG-001: due prodotti sotto la stessa categoria, quota ripartita 60/40", () => {
+    const chardonnay = bevanda({
+      id: "chardonnay",
+      capacitaUnitaria: 750,
+      unitaPerCollo: 6,
+      prezzoUnitarioCent: 600,
+    });
+    const pinot = bevanda({
+      id: "pinot",
+      capacitaUnitaria: 750,
+      unitaPerCollo: 6,
+      prezzoUnitarioCent: 900,
+    });
+    const r = calcolaBeveraggio(
+      [
+        riga({
+          categoria: "vino_bianco",
+          quantitaATesta: 200,
+          prodotti: [
+            { bevanda: chardonnay, quotaPct: 60 },
+            { bevanda: pinot, quotaPct: 40 },
+          ],
+        }),
+      ],
+      { ...opzioniBase, ospitiAdulti: 100 },
+    );
+    const x = r.righe[0];
+    // volume corretto totale: 200 × 100 = 20000 ml (nessuna riduzione: birra assente)
+    expect(x.volumeCorretto).toBe(20000);
+    expect(x.quotaCopertaPct).toBe(100);
+    expect(x.prodotti[0].volumeAssegnato).toBe(12000); // 60%
+    expect(x.prodotti[1].volumeAssegnato).toBe(8000); // 40%
+    expect(x.costoCent).toBe(
+      (x.prodotti[0].costoCent ?? 0) + (x.prodotti[1].costoCent ?? 0),
+    );
+    expect(r.righeSenzaPrezzo).toBe(false);
+  });
+
+  it("quota assegnata sotto il 100%: la categoria resta parzialmente non prezzata", () => {
+    const chardonnay = bevanda({ id: "chardonnay" });
+    const r = calcolaBeveraggio(
+      [
+        riga({
+          categoria: "vino_bianco",
+          quantitaATesta: 200,
+          prodotti: [{ bevanda: chardonnay, quotaPct: 50 }],
+        }),
+      ],
+      opzioniBase,
+    );
+    expect(r.righe[0].quotaCopertaPct).toBe(50);
+    expect(r.righeSenzaPrezzo).toBe(true);
+  });
+
+  it("lancia se le quote dei prodotti superano il 100% per la stessa categoria", () => {
+    const chardonnay = bevanda({ id: "chardonnay" });
+    const pinot = bevanda({ id: "pinot" });
+    expect(() =>
+      calcolaBeveraggio(
+        [
+          riga({
+            categoria: "vino_bianco",
+            quantitaATesta: 200,
+            prodotti: [
+              { bevanda: chardonnay, quotaPct: 70 },
+              { bevanda: pinot, quotaPct: 40 },
+            ],
+          }),
+        ],
+        opzioniBase,
+      ),
+    ).toThrow(/oltre il 100%/);
+  });
+
+  it("lancia su unità incoerente anche quando uno solo dei prodotti multipli è discorde", () => {
+    const chardonnay = bevanda({ id: "chardonnay", unita: "ml" });
+    const bicchieriere = bevanda({ id: "bicchieriere", unita: "pz" });
+    expect(() =>
+      calcolaBeveraggio(
+        [
+          riga({
+            categoria: "vino_bianco",
+            quantitaATesta: 200,
+            unita: "ml",
+            prodotti: [
+              { bevanda: chardonnay, quotaPct: 60 },
+              { bevanda: bicchieriere, quotaPct: 40 },
+            ],
+          }),
+        ],
+        opzioniBase,
+      ),
+    ).toThrow(/Unità incoerente/);
   });
 
   it("riga con volume ma senza bevanda: segnalata come non prezzata", () => {
