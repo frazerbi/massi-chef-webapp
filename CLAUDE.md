@@ -103,6 +103,8 @@ Se un requisito non è coperto dalla specifica: scegliere l'interpretazione più
 - **Deploy su Vercel attivo dal 23/07/2026** (`https://massi-chef-webapp.vercel.app`), con flusso di recupero password implementato (era un gap: fase 1 copriva solo login email+password). Vedi §12 per i dettagli infrastrutturali.
 - **Prossima: fase 2** — clienti (schermata completa), eventi da preventivo, pagamenti, storico cliente, agenda.
 - La migrazione `0001_fase1_core.sql` è applicata sul progetto: da qui in poi **solo migrazioni additive nuove**, mai modificare la 0001.
+- **Bug fix beveraggio (28/07/2026)**: risolti due bug segnalati dal cliente sul modulo preventivi — vedi §13 per le decisioni di dominio prese. Migrazione `0002_beveraggio_multi_prodotto.sql` creata ma **non ancora applicata** su Supabase (da incollare nel SQL Editor prima che il fix sia effettivo in produzione).
+- **Roadmap unica bug/feature**: tenuta in un artifact vivente (changelog + schede per bug/feature/decisioni), non in questo file. Aggiornare quello, non duplicarne il contenuto qui, quando arrivano nuove richieste. URL in memoria (`roadmap-artifact.md`).
 
 ## 12. Note operative dell'ambiente
 
@@ -127,3 +129,4 @@ Comunicate all'utente e accettate; non ridiscuterle in silenzio, ma se una crea 
 - **Margine target senza valore di default**: campo obbligatorio nel wizard (decisione commerciale dell'utente).
 - **Suggerimento riparto bianco/rosso da menu di pesce**: non implementato (le portate non codificano il "pesce"); eventualmente derivabile dagli allergeni.
 - **Recupero password** (23/07/2026): non era coperto dalla specifica né dalla fase 1; implementato come flusso minimo (email → link → nuova password, min. 8 caratteri) perché necessario per l'uso reale dell'account in produzione. Nessuna UI distingue email esistente/inesistente, per non permettere enumerazione account.
+- **Beveraggio: più prodotti per categoria** (28/07/2026, BUG-001): la specifica §5.11 non prevedeva più prodotti sotto la stessa categoria di beveraggio (un solo `bevanda_id` per categoria, sovrascritto se riassegnato). Il cliente ha chiesto esplicitamente di poterne assegnare più di uno (es. due vini diversi sotto "vino bianco"), scegliendo il cambio di modello invece del fix minimo. Implementato con quota % per prodotto (`preventivo_beveraggio_prodotto`); le formule di scalatura/correttivi/distribuzione di §5.11 restano invariate e operano ancora a livello di categoria, solo la copertura/costo si ripartisce tra i prodotti assegnati.
