@@ -31,6 +31,28 @@ Auth, materie prime, consumabili, ricette con costi (sotto-ricette incluse), men
 | `npm test` | test unitari di `/lib/calc/` e `/lib/db/` (Vitest) |
 | `npm run lint` | ESLint |
 
+## Materie prime: fattore di conversione, resa e unità
+
+Il campo che genera più dubbi in fase di inserimento è `fattore_conversione`. Riepilogo (dettaglio completo anche nella pagina **Materie prime → "Come si calcola il costo?"** del gestionale):
+
+- **Cos'è**: quante unità d'uso (`g`, `ml`, `pz`) ci sono in una unità di acquisto (`kg`, `l`, `pz`, `conf`). È solo lo scalare di conversione tra le due unità, **non** ha a che fare con lo scarto.
+- **Come si usa**: entra nella formula del costo reale (§5.1 della specifica, implementata in `lib/calc/materiaPrima.ts`):
+  ```
+  costo_per_unita_uso = prezzo_acquisto / fattore_conversione / (resa_percentuale / 100)
+  ```
+- **Valori tipici**:
+
+  | Acquisti in | Usi in | Fattore di conversione |
+  |---|---|---|
+  | kg | g | 1000 |
+  | l | ml | 1000 |
+  | pz | pz | 1 |
+  | conf da 500 g | g | 500 |
+  | conf da 6 pz | pz | 6 |
+
+- **Non confondere con la resa**: lo scarto di lavorazione (es. pulizia del pesce) è un campo separato, `resa_percentuale`, applicato dopo nella stessa formula.
+- **Vincolo**: deve essere sempre `> 0` (`unita_acquisto` e `unita_uso` devono restare dimensionalmente coerenti — mai conversioni implicite peso↔volume, invariante §4 di `CLAUDE.md`).
+
 ## Struttura
 
 ```

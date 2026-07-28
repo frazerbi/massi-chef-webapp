@@ -23,7 +23,11 @@ export default async function PaginaMateriePrime() {
       <TitoloPagina
         titolo="Materie prime"
         sottotitolo="Il costo per unità d'uso tiene conto di conversione e resa: è la base di ogni food cost."
-      />
+      >
+        <Link href="/materie-prime/guida" className="text-sm text-stone-500 hover:underline">
+          Come si calcola il costo?
+        </Link>
+      </TitoloPagina>
       <Riquadro>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px]">
