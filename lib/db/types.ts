@@ -249,6 +249,10 @@ export interface PreventivoBeveraggioRiga extends RigaBase {
   quantita_a_testa: number;
   unita: UnitaBevanda;
   quantita_a_testa_ora: number;
+  /** valore "corretto" inserito a mano al posto del calcolo automatico
+   * (correttivi/distribuzione/scalatura); il teorico resta comunque il
+   * suggerimento calcolato. null = calcolo automatico. */
+  volume_corretto_override: number | null;
   /** @deprecated sostituito da PreventivoBeveraggioProdotto (più prodotti per categoria) */
   bevanda_id: string | null;
 }

@@ -76,6 +76,10 @@ export interface RigaBeveraggioInput {
   quantitaATestaOra: number;
   /** prodotti scelti per prezzare la categoria; vuoto = riga non prezzata */
   prodotti: ProdottoBeveraggioInput[];
+  /** valore finale inserito a mano, in sostituzione dell'intera pipeline
+   * (correttivi → distribuzione → scalatura); il teorico resta comunque
+   * calcolato e mostrato come suggerimento. null/assente = calcolo automatico. */
+  volumeCorrettoOverride?: number | null;
 }
 
 export interface OpzioniBeveraggio {
@@ -109,8 +113,12 @@ export interface RigaBeveraggioRisultato {
   unita: UnitaBevanda;
   /** volume totale teorico (senza correttivi né distribuzione) */
   volumeTeorico: number;
-  /** volume totale dopo correttivi e fattore di distribuzione */
+  /** volume totale dopo correttivi e fattore di distribuzione (o il valore
+   * inserito a mano, se presente un override) */
   volumeCorretto: number;
+  /** valore inserito a mano che ha sostituito il calcolo automatico; null se
+   * la riga usa la pipeline standard */
+  volumeCorrettoOverride: number | null;
   /** un elemento per prodotto assegnato alla categoria (BUG-001) */
   prodotti: ProdottoBeveraggioRisultato[];
   /** somma delle quote assegnate: <100 = categoria parzialmente prezzata */
@@ -225,6 +233,14 @@ export function calcolaBeveraggio(
     if (!Number.isFinite(r.quantitaATestaOra) || r.quantitaATestaOra < 0) {
       throw new Error(`Quantità a testa/ora non valida per ${r.categoria}`);
     }
+    if (
+      r.volumeCorrettoOverride != null &&
+      (!Number.isFinite(r.volumeCorrettoOverride) || r.volumeCorrettoOverride < 0)
+    ) {
+      throw new Error(
+        `Valore corretto manuale non valido per ${r.categoria}: ${r.volumeCorrettoOverride}`,
+      );
+    }
     let quotaTotale = 0;
     for (const p of r.prodotti) {
       if (!Number.isFinite(p.quotaPct) || p.quotaPct <= 0) {
@@ -294,7 +310,8 @@ export function calcolaBeveraggio(
   for (const r of righe) {
     const ospiti = ospitiEquivalenti(r.categoria, opzioni);
     const volumeTeorico = (baseATesta.get(r.categoria) ?? 0) * ospiti;
-    const volumeCorretto = (correttaATesta.get(r.categoria) ?? 0) * ospiti;
+    const volumeCorrettoCalcolato = (correttaATesta.get(r.categoria) ?? 0) * ospiti;
+    const volumeCorretto = r.volumeCorrettoOverride ?? volumeCorrettoCalcolato;
 
     const prodottiRisultato: ProdottoBeveraggioRisultato[] = [];
     let quotaCopertaPct = 0;
@@ -346,6 +363,7 @@ export function calcolaBeveraggio(
       unita: r.unita,
       volumeTeorico,
       volumeCorretto,
+      volumeCorrettoOverride: r.volumeCorrettoOverride ?? null,
       prodotti: prodottiRisultato,
       quotaCopertaPct,
       costoCent: r.prodotti.length > 0 ? costoRigaCent : null,

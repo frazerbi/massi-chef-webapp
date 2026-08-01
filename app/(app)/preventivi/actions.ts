@@ -14,6 +14,7 @@ import {
   creaPreventivo,
   duplicaPreventivo,
   eliminaPreventivo,
+  impostaCorrezioneBeveraggio,
   impostaRigaBeveraggio,
   rimuoviProdottoBeveraggio,
   rimuoviRiga,
@@ -32,6 +33,7 @@ import type {
 import {
   parseEuroCent,
   parseNumero,
+  parseNumeroOpzionale,
   parseTesto,
   parseTestoOpzionale,
 } from "@/lib/form";
@@ -162,6 +164,17 @@ export async function azioneImpostaRigaBeveraggio(formData: FormData): Promise<v
 export async function azioneRimuoviRigaBeveraggio(formData: FormData): Promise<void> {
   const preventivoId = parseTesto(formData.get("preventivo_id"), "preventivo");
   await rimuoviRigaBeveraggio(preventivoId, parseTesto(formData.get("riga_id"), "riga"));
+  revalidatePath(`/preventivi/${preventivoId}`);
+}
+
+// FEATURE-016: campo vuoto = torna al calcolo automatico (rimuove l'override).
+export async function azioneImpostaCorrezioneBeveraggio(formData: FormData): Promise<void> {
+  const preventivoId = parseTesto(formData.get("preventivo_id"), "preventivo");
+  await impostaCorrezioneBeveraggio(
+    preventivoId,
+    parseTesto(formData.get("riga_id"), "riga"),
+    parseNumeroOpzionale(formData.get("valore")),
+  );
   revalidatePath(`/preventivi/${preventivoId}`);
 }
 

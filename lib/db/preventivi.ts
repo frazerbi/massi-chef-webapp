@@ -473,6 +473,26 @@ export async function impostaRigaBeveraggio(
   if (erroreUpsert) throw new Error(`Salvataggio riga beveraggio fallito: ${erroreUpsert.message}`);
 }
 
+/** FEATURE-016: sostituisce (o azzera, con valore null) il calcolo automatico
+ * del "corretto" per una singola riga già esistente. Il teorico resta sempre
+ * quello calcolato: qui si tocca solo il valore finale usato per prezzare. */
+export async function impostaCorrezioneBeveraggio(
+  preventivoId: string,
+  rigaId: string,
+  valore: number | null,
+): Promise<void> {
+  await verificaBozza(preventivoId);
+  if (valore != null && (!Number.isFinite(valore) || valore < 0)) {
+    throw new Error(`Valore corretto non valido: ${valore}`);
+  }
+  const supabase = await creaClientServer();
+  const { error } = await supabase
+    .from("preventivo_beveraggio_riga")
+    .update({ volume_corretto_override: valore })
+    .eq("id", rigaId);
+  if (error) throw new Error(`Salvataggio correzione beveraggio fallito: ${error.message}`);
+}
+
 export async function rimuoviRigaBeveraggio(
   preventivoId: string,
   rigaId: string,
@@ -662,6 +682,8 @@ export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> 
           unita: r.unita,
           quantitaATestaOra: Number(r.quantita_a_testa_ora),
           prodotti: prodottiInput,
+          volumeCorrettoOverride:
+            r.volume_corretto_override != null ? Number(r.volume_corretto_override) : null,
         };
       });
       risultatoBeveraggio = calcolaBeveraggio(righeInput, {
@@ -899,6 +921,7 @@ export async function duplicaPreventivo(
             quantita_a_testa: r.quantita_a_testa,
             unita: r.unita,
             quantita_a_testa_ora: r.quantita_a_testa_ora,
+            volume_corretto_override: r.volume_corretto_override,
           })),
         )
         .select("id, categoria");

@@ -26,6 +26,7 @@ import {
   azioneCambiaStato,
   azioneDuplica,
   azioneEliminaPreventivo,
+  azioneImpostaCorrezioneBeveraggio,
   azioneImpostaRigaBeveraggio,
   azioneRimuoviProdottoBeveraggio,
   azioneRimuoviRiga,
@@ -510,9 +511,49 @@ export default async function PaginaPreventivo({
                             </td>
                             <td className={classiTd}>
                               {Math.round(r.volumeTeorico).toLocaleString("it-IT")} {r.unita}
+                              <p className="text-xs text-stone-400">suggerimento</p>
                             </td>
                             <td className={classiTd}>
-                              {Math.round(r.volumeCorretto).toLocaleString("it-IT")} {r.unita}
+                              {eBozza && rigaDb ? (
+                                <div className="space-y-1">
+                                  <form
+                                    action={azioneImpostaCorrezioneBeveraggio}
+                                    className="flex items-center gap-1"
+                                  >
+                                    <input type="hidden" name="preventivo_id" value={preventivo.id} />
+                                    <input type="hidden" name="riga_id" value={rigaDb.id} />
+                                    <input
+                                      name="valore"
+                                      inputMode="decimal"
+                                      defaultValue={String(Math.round(r.volumeCorretto * 1000) / 1000)}
+                                      className="w-24 rounded-md border border-stone-300 px-2 py-1 text-sm"
+                                    />
+                                    <span className="text-xs text-stone-500">{r.unita}</span>
+                                    <button type="submit" className={classiBottoneSecondario}>
+                                      Salva
+                                    </button>
+                                  </form>
+                                  {r.volumeCorrettoOverride != null ? (
+                                    <form action={azioneImpostaCorrezioneBeveraggio}>
+                                      <input type="hidden" name="preventivo_id" value={preventivo.id} />
+                                      <input type="hidden" name="riga_id" value={rigaDb.id} />
+                                      <input type="hidden" name="valore" value="" />
+                                      <button type="submit" className="text-xs text-amber-700 underline">
+                                        ✏️ manuale — torna al calcolo automatico
+                                      </button>
+                                    </form>
+                                  ) : (
+                                    <p className="text-xs text-stone-400">calcolato automaticamente</p>
+                                  )}
+                                </div>
+                              ) : (
+                                <>
+                                  {Math.round(r.volumeCorretto).toLocaleString("it-IT")} {r.unita}
+                                  {r.volumeCorrettoOverride != null && (
+                                    <p className="text-xs text-amber-700">✏️ manuale</p>
+                                  )}
+                                </>
+                              )}
                             </td>
                             <td className={classiTd}>
                               <ul className="space-y-1.5">

@@ -308,6 +308,70 @@ describe("calcolaBeveraggio (§5.11)", () => {
     ).toThrow(/duplicata/);
   });
 
+  it("FEATURE-016: il valore manuale sostituisce il corretto, il teorico resta il calcolo suggerito", () => {
+    const r = calcolaBeveraggio(
+      [
+        riga({
+          categoria: "vino_bianco",
+          quantitaATesta: 200,
+          volumeCorrettoOverride: 15000,
+        }),
+      ],
+      { ...opzioniBase, ospitiAdulti: 100 },
+    );
+    const x = r.righe[0];
+    expect(x.volumeTeorico).toBe(200 * 100); // suggerimento invariato
+    expect(x.volumeCorretto).toBe(15000); // valore manuale, non il calcolo (20000)
+    expect(x.volumeCorrettoOverride).toBe(15000);
+  });
+
+  it("FEATURE-016: il valore manuale alimenta il calcolo di prodotti/colli/costo", () => {
+    const chardonnay = bevanda({
+      id: "chardonnay",
+      capacitaUnitaria: 750,
+      unitaPerCollo: 6,
+      prezzoUnitarioCent: 600,
+    });
+    const r = calcolaBeveraggio(
+      [
+        riga({
+          categoria: "vino_bianco",
+          quantitaATesta: 200,
+          volumeCorrettoOverride: 7500, // esattamente 10 bottiglie
+          bevanda: chardonnay,
+        }),
+      ],
+      { ...opzioniBase, ospitiAdulti: 100 },
+    );
+    const x = r.righe[0];
+    expect(x.prodotti[0].unitaNecessarie).toBe(10);
+    expect(x.prodotti[0].colli).toBe(2);
+  });
+
+  it("FEATURE-016: senza override il calcolo resta quello automatico (nessuna regressione)", () => {
+    const r = calcolaBeveraggio(
+      [riga({ categoria: "acqua_naturale", quantitaATesta: 600 })],
+      { ...opzioniBase, ospitiAdulti: 50 },
+    );
+    expect(r.righe[0].volumeCorrettoOverride).toBeNull();
+    expect(r.righe[0].volumeCorretto).toBe(600 * 50);
+  });
+
+  it("FEATURE-016: lancia se il valore manuale non è valido", () => {
+    expect(() =>
+      calcolaBeveraggio(
+        [
+          riga({
+            categoria: "vino_bianco",
+            quantitaATesta: 200,
+            volumeCorrettoOverride: -10,
+          }),
+        ],
+        opzioniBase,
+      ),
+    ).toThrow(/manuale non valido/);
+  });
+
   it("profilo standard della specifica: valori attesi", () => {
     const perCategoria = Object.fromEntries(
       PROFILO_STANDARD.map((r) => [r.categoria, r.quantitaATesta]),
