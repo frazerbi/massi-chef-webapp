@@ -10,12 +10,37 @@
 import { arrotondaCentesimi } from "./money";
 
 export interface RigaPreventivoCalc {
-  tipoRiga: "ricetta" | "extra";
+  tipoRiga: "ricetta" | "materia_prima" | "extra";
   quantita: number;
   /** costo unitario in centesimi (frazionari ammessi); null = riga senza costo */
   costoUnitarioCent: number | null;
   /** prezzo unitario proposto al cliente; null = non ancora deciso */
   prezzoUnitarioCent: number | null;
+}
+
+/**
+ * FEATURE-017 — quantità evento di una riga materia prima "nuda" (senza
+ * ricetta) inserita nel preventivo: quantità a persona × ospiti × (1 +
+ * sfrido%), formula §5 letterale. A differenza delle righe ricetta (il cui
+ * food cost non applica lo sfrido, decisione presa in fase 1), questa riga lo
+ * applica: scelta esplicita dell'utente, segnalata come incoerenza nota tra i
+ * due tipi di riga dello stesso preventivo.
+ */
+export function quantitaEventoMateriaPrima(
+  quantitaPersona: number,
+  ospitiTotali: number,
+  sfridoPct: number,
+): number {
+  if (!Number.isFinite(quantitaPersona) || quantitaPersona <= 0) {
+    throw new Error(`Quantità a persona non valida: ${quantitaPersona}`);
+  }
+  if (!Number.isInteger(ospitiTotali) || ospitiTotali <= 0) {
+    throw new Error(`Ospiti totali non validi: ${ospitiTotali}`);
+  }
+  if (!Number.isFinite(sfridoPct) || sfridoPct < 0) {
+    throw new Error(`Sfrido non valido: ${sfridoPct}`);
+  }
+  return quantitaPersona * ospitiTotali * (1 + sfridoPct / 100);
 }
 
 export interface TotaliPreventivoInput {
@@ -65,10 +90,10 @@ export function calcolaTotaliPreventivo(
     }
     const costoRiga =
       riga.costoUnitarioCent != null ? riga.costoUnitarioCent * riga.quantita : 0;
-    if (riga.tipoRiga === "ricetta") {
-      foodCost += costoRiga;
-    } else {
+    if (riga.tipoRiga === "extra") {
       costoExtra += costoRiga;
+    } else {
+      foodCost += costoRiga;
     }
     if (riga.prezzoUnitarioCent != null) {
       prezzoTotale += riga.prezzoUnitarioCent * riga.quantita;

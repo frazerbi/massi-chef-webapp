@@ -66,7 +66,7 @@ function RigaPrezzo({
 }
 
 function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
-  const { dati, beveraggio, totali } = calcolo;
+  const { dati, beveraggio, totali, quantitaEffettivaRighe } = calcolo;
   const { preventivo, cliente, righe, beveraggio: configBev } = dati;
   const ospitiTotali =
     preventivo.numero_ospiti_adulti + preventivo.numero_ospiti_bambini;
@@ -106,7 +106,7 @@ function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
             <RigaPrezzo
               key={riga.id}
               descrizione={riga.descrizione}
-              quantita={Number(riga.quantita)}
+              quantita={quantitaEffettivaRighe.get(riga.id) ?? Number(riga.quantita)}
               prezzoUnitarioCent={riga.prezzo_unitario_cent}
             />
           ))}

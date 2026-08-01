@@ -1,6 +1,6 @@
 import { creaClientServer } from "./server";
 import type { Menu, MenuRiga } from "./types";
-import { validaTesto } from "./validazioni";
+import { validaQuantita, validaTesto } from "./validazioni";
 
 export async function elencoMenu(): Promise<Menu[]> {
   const supabase = await creaClientServer();
@@ -52,6 +52,25 @@ export async function aggiungiRicettaAMenu(
     .from("menu_riga")
     .insert({ menu_id: menuId, ricetta_id: ricettaId, ordine });
   if (error) throw new Error(`Aggiunta ricetta al menu fallita: ${error.message}`);
+}
+
+/** FEATURE-017: portata "nuda" senza ricetta (frutta, olive, patatine).
+ * quantitaPersona è a persona, nell'unità d'uso della materia prima. */
+export async function aggiungiMateriaPrimaAMenu(
+  menuId: string,
+  materiaPrimaId: string,
+  quantitaPersona: number,
+  ordine: number,
+): Promise<void> {
+  validaQuantita(quantitaPersona, "quantità a persona");
+  const supabase = await creaClientServer();
+  const { error } = await supabase.from("menu_riga").insert({
+    menu_id: menuId,
+    materia_prima_id: materiaPrimaId,
+    quantita_persona: quantitaPersona,
+    ordine,
+  });
+  if (error) throw new Error(`Aggiunta materia prima al menu fallita: ${error.message}`);
 }
 
 export async function rimuoviRigaMenu(id: string): Promise<void> {

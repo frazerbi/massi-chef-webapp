@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { calcolaTotaliPreventivo } from "@/lib/calc/preventivo";
+import {
+  calcolaTotaliPreventivo,
+  quantitaEventoMateriaPrima,
+} from "@/lib/calc/preventivo";
 
 describe("calcolaTotaliPreventivo (§5.4)", () => {
   it("food cost, extra, prezzo suggerito e margini", () => {
@@ -97,5 +100,46 @@ describe("calcolaTotaliPreventivo (§5.4)", () => {
         margineTargetPct: 30,
       }),
     ).toThrow();
+  });
+
+  it("riga materia_prima (FEATURE-017) entra nel food cost come le righe ricetta", () => {
+    const totali = calcolaTotaliPreventivo({
+      righe: [
+        {
+          tipoRiga: "materia_prima",
+          quantita: 5000, // già scalata (quantità evento)
+          costoUnitarioCent: 2,
+          prezzoUnitarioCent: null,
+        },
+      ],
+      costoBeveraggioCent: 0,
+      prezzoBeveraggioCent: 0,
+      margineTargetPct: 0,
+    });
+    expect(totali.foodCostCent).toBe(10000);
+    expect(totali.costoExtraCent).toBe(0);
+  });
+});
+
+describe("quantitaEventoMateriaPrima (§5 — FEATURE-017)", () => {
+  it("quantità a persona × ospiti × (1 + sfrido%)", () => {
+    // 50 g a persona, 100 ospiti, sfrido 10% -> 5000 * 1,10 = 5500 g
+    expect(quantitaEventoMateriaPrima(50, 100, 10)).toBeCloseTo(5500, 6);
+  });
+
+  it("sfrido 0 (caso limite): quantità evento = quantità a persona × ospiti", () => {
+    expect(quantitaEventoMateriaPrima(40, 80, 0)).toBeCloseTo(3200, 6);
+  });
+
+  it("un solo ospite: quantità evento = quantità a persona (con sfrido)", () => {
+    expect(quantitaEventoMateriaPrima(200, 1, 5)).toBeCloseTo(210, 6);
+  });
+
+  it("lancia su quantità a persona, ospiti o sfrido non validi", () => {
+    expect(() => quantitaEventoMateriaPrima(0, 10, 10)).toThrow();
+    expect(() => quantitaEventoMateriaPrima(-5, 10, 10)).toThrow();
+    expect(() => quantitaEventoMateriaPrima(10, 0, 10)).toThrow();
+    expect(() => quantitaEventoMateriaPrima(10, 1.5, 10)).toThrow();
+    expect(() => quantitaEventoMateriaPrima(10, 10, -1)).toThrow();
   });
 });

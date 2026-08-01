@@ -10,6 +10,7 @@ import {
   TitoloPagina,
 } from "@/components/ui";
 import { formattaEuro } from "@/lib/calc/money";
+import { elencoMateriePrime } from "@/lib/db/materiePrime";
 import { calcolaPreventivo } from "@/lib/db/preventivi";
 import { elencoRicette } from "@/lib/db/ricette";
 import {
@@ -22,6 +23,7 @@ import {
   azioneAggiornaRigaPrezzo,
   azioneAggiungiProdottoBeveraggio,
   azioneAggiungiRigaExtra,
+  azioneAggiungiRigaMateriaPrima,
   azioneAggiungiRigaRicetta,
   azioneCambiaStato,
   azioneDuplica,
@@ -43,11 +45,22 @@ export default async function PaginaPreventivo({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [calcolo, ricette] = await Promise.all([
+  const [calcolo, ricette, materiePrimeAttive] = await Promise.all([
     calcolaPreventivo(id),
     elencoRicette(true),
+    elencoMateriePrime(),
   ]);
-  const { dati, costiRigheCent, beveraggio, erroreBeveraggio, totali, bevande } = calcolo;
+  const {
+    dati,
+    costiRigheCent,
+    quantitaEffettivaRighe,
+    beveraggio,
+    erroreBeveraggio,
+    totali,
+    bevande,
+    materiePrime,
+  } = calcolo;
+  const materiePrimePerId = new Map(materiePrime.map((mp) => [mp.id, mp]));
   const {
     preventivo,
     cliente,
@@ -197,6 +210,11 @@ export default async function PaginaPreventivo({
               <tbody className="divide-y divide-stone-100">
                 {righe.map((riga) => {
                   const costoUnitario = costiRigheCent.get(riga.id) ?? null;
+                  const quantitaEffettiva =
+                    quantitaEffettivaRighe.get(riga.id) ?? Number(riga.quantita);
+                  const materiaPrima = riga.materia_prima_id
+                    ? materiePrimePerId.get(riga.materia_prima_id)
+                    : undefined;
                   return (
                     <tr key={riga.id}>
                       <td className={`${classiTd} font-medium`}>
@@ -206,8 +224,26 @@ export default async function PaginaPreventivo({
                             {riga.categoria_extra}
                           </span>
                         )}
+                        {riga.tipo_riga === "materia_prima" && (
+                          <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs">
+                            materia prima
+                          </span>
+                        )}
                       </td>
-                      <td className={classiTd}>{Number(riga.quantita)}</td>
+                      <td className={classiTd}>
+                        {riga.tipo_riga === "materia_prima" ? (
+                          <>
+                            {Number(riga.quantita)} {materiaPrima?.unita_uso ?? ""} a persona
+                            <p className="text-xs text-stone-400">
+                              tot. evento: {Math.round(quantitaEffettiva * 1000) / 1000}{" "}
+                              {materiaPrima?.unita_uso ?? ""} ({ospitiTotali} ospiti, sfrido{" "}
+                              {Number(preventivo.sfrido_pct)}%)
+                            </p>
+                          </>
+                        ) : (
+                          Number(riga.quantita)
+                        )}
+                      </td>
                       <td className={classiTd}>
                         {costoUnitario != null
                           ? formattaEuro(Math.round(costoUnitario))
@@ -215,7 +251,7 @@ export default async function PaginaPreventivo({
                       </td>
                       <td className={classiTd}>
                         {costoUnitario != null
-                          ? formattaEuro(Math.round(costoUnitario * Number(riga.quantita)))
+                          ? formattaEuro(Math.round(costoUnitario * quantitaEffettiva))
                           : "—"}
                       </td>
                       <td className={classiTd}>
@@ -226,11 +262,21 @@ export default async function PaginaPreventivo({
                           >
                             <input type="hidden" name="preventivo_id" value={preventivo.id} />
                             <input type="hidden" name="riga_id" value={riga.id} />
-                            <input
-                              type="hidden"
-                              name="quantita"
-                              value={String(riga.quantita)}
-                            />
+                            {riga.tipo_riga === "materia_prima" ? (
+                              <input
+                                name="quantita"
+                                inputMode="decimal"
+                                defaultValue={String(riga.quantita)}
+                                title="Quantità a persona"
+                                className="w-20 rounded-md border border-stone-300 px-2 py-1 text-sm"
+                              />
+                            ) : (
+                              <input
+                                type="hidden"
+                                name="quantita"
+                                value={String(riga.quantita)}
+                              />
+                            )}
                             <input
                               name="prezzo"
                               inputMode="decimal"
@@ -269,7 +315,7 @@ export default async function PaginaPreventivo({
                 {righe.length === 0 && (
                   <tr>
                     <td className={`${classiTd} text-stone-500`} colSpan={6}>
-                      Nessuna riga: aggiungi ricette o voci extra.
+                      Nessuna riga: aggiungi ricette, materie prime o voci extra.
                     </td>
                   </tr>
                 )}
@@ -278,7 +324,7 @@ export default async function PaginaPreventivo({
           </div>
 
           {eBozza && (
-            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            <div className="mt-6 grid gap-6 lg:grid-cols-3">
               <form action={azioneAggiungiRigaRicetta} className="space-y-3">
                 <h3 className="font-medium">Aggiungi ricetta</h3>
                 <input type="hidden" name="preventivo_id" value={preventivo.id} />
@@ -300,6 +346,35 @@ export default async function PaginaPreventivo({
                     className={classiInput}
                   />
                 </Etichetta>
+                <button type="submit" className={classiBottone}>
+                  Aggiungi riga
+                </button>
+              </form>
+
+              <form action={azioneAggiungiRigaMateriaPrima} className="space-y-3">
+                <h3 className="font-medium">Aggiungi materia prima (senza ricetta)</h3>
+                <input type="hidden" name="preventivo_id" value={preventivo.id} />
+                <Etichetta testo="Materia prima">
+                  <select name="materia_prima_id" required className={classiInput}>
+                    {materiePrimeAttive.map((mp) => (
+                      <option key={mp.id} value={mp.id}>
+                        {mp.nome} ({mp.unita_uso})
+                      </option>
+                    ))}
+                  </select>
+                </Etichetta>
+                <Etichetta testo="Quantità a persona">
+                  <input
+                    name="quantita_persona"
+                    required
+                    inputMode="decimal"
+                    className={classiInput}
+                  />
+                </Etichetta>
+                <p className="text-xs text-stone-500">
+                  Scala automaticamente per {ospitiTotali} ospiti + sfrido{" "}
+                  {Number(preventivo.sfrido_pct)}%.
+                </p>
                 <button type="submit" className={classiBottone}>
                   Aggiungi riga
                 </button>

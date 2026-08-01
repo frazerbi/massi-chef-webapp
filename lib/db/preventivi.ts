@@ -3,10 +3,12 @@ import {
   type RigaBeveraggioInput,
   type RisultatoBeveraggio,
 } from "@/lib/calc/beveraggio";
+import { costoUnitaUsoCent } from "@/lib/calc/materiaPrima";
 import { costoPorzioneCent } from "@/lib/calc/ricetta";
 import { arrotondaCentesimi } from "@/lib/calc/money";
 import {
   calcolaTotaliPreventivo,
+  quantitaEventoMateriaPrima,
   type TotaliPreventivo,
 } from "@/lib/calc/preventivo";
 import { ottieniImpostazioni } from "./impostazioni";
@@ -19,6 +21,7 @@ import type {
   CategoriaRigaExtra,
   Cliente,
   FoodCostSnapshot,
+  MateriaPrima,
   Preventivo,
   PreventivoBeveraggio,
   PreventivoBeveraggioProdotto,
@@ -178,21 +181,43 @@ export async function creaPreventivo(input: InputNuovoPreventivo): Promise<strin
   if (input.menu_id) {
     const righeMenu = await righeDiMenu(input.menu_id);
     if (righeMenu.length > 0) {
-      const { data: ricette, error: erroreRicette } = await supabase
-        .from("ricetta")
-        .select("id, nome")
-        .in("id", righeMenu.map((r) => r.ricetta_id));
-      if (erroreRicette) throw new Error(erroreRicette.message);
-      const nomi = new Map((ricette ?? []).map((r) => [r.id, r.nome]));
+      const idRicette = righeMenu.filter((r) => r.ricetta_id).map((r) => r.ricetta_id as string);
+      const idMateriePrime = righeMenu
+        .filter((r) => r.materia_prima_id)
+        .map((r) => r.materia_prima_id as string);
+      const [ricetteRes, materiePrimeRes] = await Promise.all([
+        idRicette.length > 0
+          ? supabase.from("ricetta").select("id, nome").in("id", idRicette)
+          : Promise.resolve({ data: [], error: null }),
+        idMateriePrime.length > 0
+          ? supabase.from("materia_prima").select("id, nome").in("id", idMateriePrime)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+      if (ricetteRes.error) throw new Error(ricetteRes.error.message);
+      if (materiePrimeRes.error) throw new Error(materiePrimeRes.error.message);
+      const nomiRicette = new Map((ricetteRes.data ?? []).map((r) => [r.id, r.nome]));
+      const nomiMateriePrime = new Map((materiePrimeRes.data ?? []).map((r) => [r.id, r.nome]));
       const { error: erroreRighe } = await supabase.from("preventivo_riga").insert(
-        righeMenu.map((r, i) => ({
-          preventivo_id: preventivoId,
-          tipo_riga: "ricetta",
-          ricetta_id: r.ricetta_id,
-          descrizione: nomi.get(r.ricetta_id) ?? "Ricetta",
-          quantita: adulti + bambini,
-          ordine: i,
-        })),
+        righeMenu.map((r, i) =>
+          r.ricetta_id
+            ? {
+                preventivo_id: preventivoId,
+                tipo_riga: "ricetta",
+                ricetta_id: r.ricetta_id,
+                descrizione: nomiRicette.get(r.ricetta_id) ?? "Ricetta",
+                quantita: adulti + bambini,
+                ordine: i,
+              }
+            : {
+                preventivo_id: preventivoId,
+                tipo_riga: "materia_prima",
+                materia_prima_id: r.materia_prima_id,
+                descrizione: nomiMateriePrime.get(r.materia_prima_id as string) ?? "Materia prima",
+                // quantita_persona del template: la quantità evento si calcola live
+                quantita: r.quantita_persona,
+                ordine: i,
+              },
+        ),
       );
       if (erroreRighe) throw new Error(erroreRighe.message);
     }
@@ -304,6 +329,28 @@ export async function aggiungiRigaRicetta(
     quantita: porzioni,
   });
   if (error) throw new Error(`Aggiunta riga fallita: ${error.message}`);
+}
+
+/** FEATURE-017: materia prima inserita direttamente, senza ricetta (frutta,
+ * olive, patatine). quantitaPersona è a persona, nell'unità d'uso della
+ * materia prima: la quantità evento si calcola live in calcolaPreventivo. */
+export async function aggiungiRigaMateriaPrima(
+  preventivoId: string,
+  materiaPrimaId: string,
+  descrizione: string,
+  quantitaPersona: number,
+): Promise<void> {
+  await verificaBozza(preventivoId);
+  validaQuantita(quantitaPersona, "quantità a persona");
+  const supabase = await creaClientServer();
+  const { error } = await supabase.from("preventivo_riga").insert({
+    preventivo_id: preventivoId,
+    tipo_riga: "materia_prima",
+    materia_prima_id: materiaPrimaId,
+    descrizione: validaTesto(descrizione, "descrizione"),
+    quantita: quantitaPersona,
+  });
+  if (error) throw new Error(`Aggiunta riga materia prima fallita: ${error.message}`);
 }
 
 export async function aggiungiRigaExtra(
@@ -583,6 +630,10 @@ export interface CalcoloPreventivo {
   dati: PreventivoCompleto;
   /** costo unitario per riga (live per bozze, da snapshot per inviati) */
   costiRigheCent: Map<string, number | null>;
+  /** quantità effettivamente usata nel calcolo: per righe ricetta/extra è
+   * riga.quantita; per righe materia_prima (FEATURE-017) è la quantità
+   * evento già scalata (a persona × ospiti × (1+sfrido%), §5) */
+  quantitaEffettivaRighe: Map<string, number>;
   beveraggio: RisultatoBeveraggio | null;
   /** BUG-002: messaggio se il calcolo del beveraggio è fallito (dato incoerente
    * già salvato); la pagina resta apribile e mostra le righe grezze per
@@ -591,30 +642,67 @@ export interface CalcoloPreventivo {
   totali: TotaliPreventivo;
   /** bevande disponibili per categoria (per la UI) */
   bevande: Bevanda[];
+  /** materie prime (incluse soft-deleted, referenziate da righe storiche) per la UI */
+  materiePrime: MateriaPrima[];
 }
 
 export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> {
   const dati = await preventivoCompleto(id);
   const { preventivo, righe, beveraggio, righeBeveraggio, prodottiBeveraggio } = dati;
   const supabase = await creaClientServer();
-  const { data: bevandeData, error: erroreBevande } = await supabase
-    .from("bevanda")
-    .select("*");
-  if (erroreBevande) throw new Error(erroreBevande.message);
-  const bevande = (bevandeData ?? []) as Bevanda[];
+  const [bevandeRes, materiePrimeRes] = await Promise.all([
+    supabase.from("bevanda").select("*"),
+    supabase.from("materia_prima").select("*"),
+  ]);
+  if (bevandeRes.error) throw new Error(bevandeRes.error.message);
+  if (materiePrimeRes.error) throw new Error(materiePrimeRes.error.message);
+  const bevande = (bevandeRes.data ?? []) as Bevanda[];
   const bevandePerId = new Map(bevande.map((b) => [b.id, b]));
+  const materiePrime = (materiePrimeRes.data ?? []) as MateriaPrima[];
 
   const eBozza = preventivo.stato === "bozza";
   const snapshot = preventivo.food_cost_snapshot;
 
   // costi delle righe
   const costiRigheCent = new Map<string, number | null>();
+  const quantitaEffettivaRighe = new Map<string, number>();
+  const ospitiTotali = preventivo.numero_ospiti_adulti + preventivo.numero_ospiti_bambini;
+  const materiePrimePerId = new Map(materiePrime.map((mp) => [mp.id, mp]));
   let grafo: Awaited<ReturnType<typeof caricaGrafoCalc>> | null = null;
   for (const riga of righe) {
     if (riga.tipo_riga === "extra") {
       costiRigheCent.set(riga.id, riga.costo_unitario_cent);
+      quantitaEffettivaRighe.set(riga.id, Number(riga.quantita));
       continue;
     }
+    if (riga.tipo_riga === "materia_prima") {
+      const quantitaEvento = quantitaEventoMateriaPrima(
+        Number(riga.quantita),
+        ospitiTotali,
+        Number(preventivo.sfrido_pct),
+      );
+      quantitaEffettivaRighe.set(riga.id, quantitaEvento);
+      if (eBozza) {
+        const mp = materiePrimePerId.get(riga.materia_prima_id!);
+        if (!mp) {
+          throw new Error(`Materia prima non trovata per la riga "${riga.descrizione}"`);
+        }
+        costiRigheCent.set(
+          riga.id,
+          costoUnitaUsoCent({
+            prezzoAcquistoCent: Number(mp.prezzo_acquisto_cent),
+            fattoreConversione: Number(mp.fattore_conversione),
+            resaPercentuale: Number(mp.resa_percentuale),
+          }),
+        );
+      } else {
+        const congelato = snapshot?.righe.find((r) => r.riga_id === riga.id);
+        costiRigheCent.set(riga.id, congelato?.costo_unitario_cent ?? riga.costo_unitario_cent);
+      }
+      continue;
+    }
+    // tipo_riga === "ricetta"
+    quantitaEffettivaRighe.set(riga.id, Number(riga.quantita));
     if (eBozza) {
       grafo ??= await caricaGrafoCalc();
       costiRigheCent.set(
@@ -709,7 +797,7 @@ export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> 
   const totali = calcolaTotaliPreventivo({
     righe: righe.map((r) => ({
       tipoRiga: r.tipo_riga,
-      quantita: Number(r.quantita),
+      quantita: quantitaEffettivaRighe.get(r.id) ?? Number(r.quantita),
       costoUnitarioCent: costiRigheCent.get(r.id) ?? null,
       prezzoUnitarioCent:
         r.prezzo_unitario_cent != null ? Number(r.prezzo_unitario_cent) : null,
@@ -722,10 +810,12 @@ export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> 
   return {
     dati,
     costiRigheCent,
+    quantitaEffettivaRighe,
     beveraggio: risultatoBeveraggio,
     erroreBeveraggio,
     totali,
     bevande,
+    materiePrime,
   };
 }
 
@@ -880,10 +970,11 @@ export async function duplicaPreventivo(
         preventivo_id: nuovoId,
         tipo_riga: r.tipo_riga,
         ricetta_id: r.ricetta_id,
+        materia_prima_id: r.materia_prima_id,
         categoria_extra: r.categoria_extra,
         descrizione: r.descrizione,
         quantita: r.quantita,
-        // le bozze ricalcolano live: il costo congelato non si copia sulle righe ricetta
+        // le bozze ricalcolano live: il costo congelato non si copia sulle righe ricetta/materia prima
         costo_unitario_cent: r.tipo_riga === "extra" ? r.costo_unitario_cent : null,
         prezzo_unitario_cent: r.prezzo_unitario_cent,
         escludi_opzionali: r.escludi_opzionali,
