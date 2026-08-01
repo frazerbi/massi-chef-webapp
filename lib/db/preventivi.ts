@@ -413,6 +413,41 @@ export async function impostaRigaBeveraggio(
     .eq("preventivo_id", preventivoId)
     .single();
   if (error) throw new Error(`Beveraggio non trovato: ${error.message}`);
+
+  // se la riga esiste già e ha prodotti assegnati, l'unità non può cambiare
+  // sotto di loro (mai conversioni implicite, invariante 5): senza questo
+  // controllo il salvataggio della riga può disallineare silenziosamente
+  // unita dalla bevanda già coperta da aggiungiProdottoBeveraggio, che
+  // valida solo al momento dell'assegnazione.
+  const { data: rigaEsistente, error: erroreRiga } = await supabase
+    .from("preventivo_beveraggio_riga")
+    .select("id")
+    .eq("preventivo_beveraggio_id", bev.id)
+    .eq("categoria", categoria)
+    .maybeSingle();
+  if (erroreRiga) throw new Error(erroreRiga.message);
+  if (rigaEsistente) {
+    const { data: prodotti, error: erroreProdotti } = await supabase
+      .from("preventivo_beveraggio_prodotto")
+      .select("bevanda_id")
+      .eq("preventivo_beveraggio_riga_id", rigaEsistente.id);
+    if (erroreProdotti) throw new Error(erroreProdotti.message);
+    const bevandaIds = (prodotti ?? []).map((p) => p.bevanda_id);
+    if (bevandaIds.length > 0) {
+      const { data: bevandeAssegnate, error: erroreBevande } = await supabase
+        .from("bevanda")
+        .select("nome, unita")
+        .in("id", bevandaIds);
+      if (erroreBevande) throw new Error(erroreBevande.message);
+      const incoerente = (bevandeAssegnate ?? []).find((b) => b.unita !== campi.unita);
+      if (incoerente) {
+        throw new Error(
+          `Impossibile cambiare unità per ${categoria}: il prodotto "${incoerente.nome}" già assegnato è in ${incoerente.unita}, non ${campi.unita}`,
+        );
+      }
+    }
+  }
+
   const { error: erroreUpsert } = await supabase
     .from("preventivo_beveraggio_riga")
     .upsert(
