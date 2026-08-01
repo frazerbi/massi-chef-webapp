@@ -277,6 +277,16 @@ export async function aggiornaPreventivo(
   if (error) throw new Error(`Aggiornamento preventivo fallito: ${error.message}`);
 }
 
+/** Elimina un preventivo ancora in bozza (mai inviato: nessuno snapshot,
+ * nessuno storico da preservare — non è tra le entità a soft delete
+ * dell'invariante 3). Le righe/beveraggio collegati si eliminano a cascata. */
+export async function eliminaPreventivo(id: string): Promise<void> {
+  await verificaBozza(id);
+  const supabase = await creaClientServer();
+  const { error } = await supabase.from("preventivo").delete().eq("id", id);
+  if (error) throw new Error(`Eliminazione preventivo fallita: ${error.message}`);
+}
+
 export async function aggiungiRigaRicetta(
   preventivoId: string,
   ricettaId: string,

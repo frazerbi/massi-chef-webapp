@@ -13,6 +13,7 @@ import {
   cambiaStatoPreventivo,
   creaPreventivo,
   duplicaPreventivo,
+  eliminaPreventivo,
   impostaRigaBeveraggio,
   rimuoviProdottoBeveraggio,
   rimuoviRiga,
@@ -200,4 +201,11 @@ export async function azioneDuplica(formData: FormData): Promise<void> {
   const nuovoId = await duplicaPreventivo(id, comeRevisione);
   revalidatePath("/preventivi");
   redirect(`/preventivi/${nuovoId}`);
+}
+
+export async function azioneEliminaPreventivo(formData: FormData): Promise<void> {
+  const id = parseTesto(formData.get("id"), "id");
+  await eliminaPreventivo(id);
+  revalidatePath("/preventivi");
+  redirect("/preventivi");
 }

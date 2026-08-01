@@ -25,6 +25,7 @@ import {
   azioneAggiungiRigaRicetta,
   azioneCambiaStato,
   azioneDuplica,
+  azioneEliminaPreventivo,
   azioneImpostaRigaBeveraggio,
   azioneRimuoviProdottoBeveraggio,
   azioneRimuoviRiga,
@@ -122,6 +123,14 @@ export default async function PaginaPreventivo({
             Duplica
           </button>
         </form>
+        {eBozza && (
+          <form action={azioneEliminaPreventivo}>
+            <input type="hidden" name="id" value={preventivo.id} />
+            <button type="submit" className={classiBottoneSecondario}>
+              Elimina bozza
+            </button>
+          </form>
+        )}
       </TitoloPagina>
 
       {!eBozza && (
