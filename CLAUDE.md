@@ -103,7 +103,8 @@ Se un requisito non è coperto dalla specifica: scegliere l'interpretazione più
 - **Deploy su Vercel attivo dal 23/07/2026** (`https://massi-chef-webapp.vercel.app`), con flusso di recupero password implementato (era un gap: fase 1 copriva solo login email+password). Vedi §12 per i dettagli infrastrutturali.
 - **Prossima: fase 2** — clienti (schermata completa), eventi da preventivo, pagamenti, storico cliente, agenda.
 - La migrazione `0001_fase1_core.sql` è applicata sul progetto: da qui in poi **solo migrazioni additive nuove**, mai modificare la 0001.
-- **Bug fix beveraggio (28/07/2026)**: risolti due bug segnalati dal cliente sul modulo preventivi — vedi §13 per le decisioni di dominio prese. Migrazione `0002_beveraggio_multi_prodotto.sql` creata ma **non ancora applicata** su Supabase (da incollare nel SQL Editor prima che il fix sia effettivo in produzione).
+- **Bug fix beveraggio (28/07/2026)**: risolti due bug segnalati dal cliente sul modulo preventivi — vedi §13 per le decisioni di dominio prese. Migrazione `0002_beveraggio_multi_prodotto.sql` creata e **applicata su Supabase** (28/07/2026): fix attivo in produzione.
+- **Bug fix "Segna come inviato" (01/08/2026)**: `impostaRigaBeveraggio` non validava l'unità contro un prodotto beveraggio già assegnato, permettendo un disallineamento silenzioso che faceva fallire l'invio del preventivo. Guardia aggiunta in `lib/db/preventivi.ts`; due preventivi già affetti in produzione corretti via SQL Editor. Dettagli nella roadmap artifact.
 - **Roadmap unica bug/feature**: tenuta in un artifact vivente (changelog + schede per bug/feature/decisioni), non in questo file. Aggiornare quello, non duplicarne il contenuto qui, quando arrivano nuove richieste. URL in memoria (`roadmap-artifact.md`).
 
 ## 12. Note operative dell'ambiente
@@ -116,6 +117,7 @@ Se un requisito non è coperto dalla specifica: scegliere l'interpretazione più
 - **Next.js 16**: il middleware usa la convenzione `proxy.ts` (non `middleware.ts`). Le pagine in `app/(app)/` sono `force-dynamic` (impostato nel layout del gruppo): leggono dati per-utente, mai prerender statico. Il proxy considera pubbliche (accessibili senza sessione) solo `/login` e `/auth/callback` con le rispettive sottopagine; solo `/login` esatto respinge un utente già autenticato — le sottopagine di recupero password restano accessibili anche con una sessione di recovery attiva.
 - **Comandi**: `npm run dev` (sviluppo), `npm test` (Vitest su `/lib/calc/` e `/lib/db/`), `npm run build`, `npm run lint`. Prima di consegnare: tutti e tre verdi.
 - **Denaro**: nel DB gli importi sono `integer` in centesimi con suffisso `_cent`; i form accettano euro con virgola e convertono in `lib/form.ts`.
+- **Debug di errori in produzione**: Next.js in produzione redige il messaggio degli errori dei Server Component/Server Action (`app/error.tsx` mostra solo un digest generico), quindi non è mai visibile all'utente. Se il bug è sui dati di un altro utente e non è riproducibile in locale, diagnosticare direttamente via query mirate nel SQL Editor di Supabase (bypassa le RLS come proprietario del progetto) invece di fidarsi del messaggio a schermo.
 - **PDF cliente**: mostra solo i prezzi, mai i costi interni. Archiviazione su Storage rimandata alla fase 7.
 
 ## 13. Decisioni interpretative già prese (fase 1)
