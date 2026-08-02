@@ -13,7 +13,12 @@ import {
 } from "@react-pdf/renderer";
 import { formattaEuro } from "@/lib/calc/money";
 import type { CalcoloPreventivo } from "@/lib/db/preventivi";
-import { ETICHETTE_CATEGORIA_BEVANDA } from "@/lib/db/types";
+import {
+  ETICHETTE_CATEGORIA_BEVANDA,
+  type Consumabile,
+  type MateriaPrima,
+  type PreventivoRiga,
+} from "@/lib/db/types";
 
 const stili = StyleSheet.create({
   pagina: { padding: 40, fontSize: 10, fontFamily: "Helvetica", color: "#1c1917" },
@@ -40,19 +45,32 @@ const stili = StyleSheet.create({
   nota: { marginTop: 4, color: "#57534e" },
 });
 
+/** Arrotonda a 3 decimali per la presentazione (invariante §4.6: le quantità
+ * si arrotondano solo in visualizzazione, mai nei calcoli), evitando i residui
+ * in virgola mobile (es. 3520.0000000000005) sui numeri passati al PDF. */
+function arrotondaQuantita(quantita: number): number {
+  return Math.round(quantita * 1000) / 1000;
+}
+
 function RigaPrezzo({
   descrizione,
   quantita,
+  unita,
   prezzoUnitarioCent,
 }: {
   descrizione: string;
   quantita: number;
+  unita: string;
   prezzoUnitarioCent: number | null;
 }) {
+  const quantitaArrotondata = arrotondaQuantita(quantita);
   return (
     <View style={stili.rigaTabella}>
       <Text style={stili.colDescrizione}>{descrizione}</Text>
-      <Text style={stili.colNumero}>{quantita}</Text>
+      <Text style={stili.colNumero}>
+        {quantitaArrotondata}
+        {unita ? ` ${unita}` : ""}
+      </Text>
       <Text style={stili.colNumero}>
         {prezzoUnitarioCent != null ? formattaEuro(prezzoUnitarioCent) : "—"}
       </Text>
@@ -65,12 +83,29 @@ function RigaPrezzo({
   );
 }
 
+function unitaRiga(
+  riga: PreventivoRiga,
+  materiePrimePerId: Map<string, MateriaPrima>,
+  consumabiliPerId: Map<string, Consumabile>,
+): string {
+  if (riga.tipo_riga === "ricetta") return "porzioni";
+  if (riga.tipo_riga === "materia_prima" && riga.materia_prima_id) {
+    return materiePrimePerId.get(riga.materia_prima_id)?.unita_uso ?? "";
+  }
+  if (riga.tipo_riga === "consumabile" && riga.consumabile_id) {
+    return consumabiliPerId.get(riga.consumabile_id)?.unita_uso ?? "";
+  }
+  return "";
+}
+
 function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
-  const { dati, beveraggio, totali, quantitaEffettivaRighe } = calcolo;
+  const { dati, beveraggio, totali, quantitaEffettivaRighe, materiePrime, consumabili } = calcolo;
   const { preventivo, cliente, righe, beveraggio: configBev } = dati;
   const ospitiTotali =
     preventivo.numero_ospiti_adulti + preventivo.numero_ospiti_bambini;
   const prezzoFinaleCent = preventivo.prezzo_totale_cent ?? totali.prezzoTotaleCent;
+  const materiePrimePerId = new Map(materiePrime.map((mp) => [mp.id, mp]));
+  const consumabiliPerId = new Map(consumabili.map((c) => [c.id, c]));
 
   return (
     <Document>
@@ -107,6 +142,7 @@ function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
               key={riga.id}
               descrizione={riga.descrizione}
               quantita={quantitaEffettivaRighe.get(riga.id) ?? Number(riga.quantita)}
+              unita={unitaRiga(riga, materiePrimePerId, consumabiliPerId)}
               prezzoUnitarioCent={riga.prezzo_unitario_cent}
             />
           ))}
@@ -115,41 +151,27 @@ function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
         {configBev?.attivo && beveraggio && (
           <View style={stili.sezione}>
             <Text style={stili.intestazioneSezione}>Beveraggio</Text>
-            {configBev.esposizione === "a_corpo" && (
-              <Text>
-                Beveraggio completo per {ospitiTotali} ospiti, incluso nel servizio.
-              </Text>
-            )}
-            {configBev.esposizione === "a_testa" && (
-              <>
-                {beveraggio.righe
-                  .filter((r) => r.volumeCorretto > 0)
-                  .map((r) => (
-                    <Text key={r.categoria}>
-                      {ETICHETTE_CATEGORIA_BEVANDA[r.categoria]}:{" "}
-                      {Math.round(
-                        r.volumeCorretto /
-                          Math.max(1, preventivo.numero_ospiti_adulti),
-                      )}{" "}
-                      {r.unita} a persona (adulti)
+            {beveraggio.righe
+              .filter((r) => r.volumeCorretto > 0)
+              .map((r) => (
+                <View key={r.categoria} style={{ marginBottom: 4 }}>
+                  <Text>
+                    {ETICHETTE_CATEGORIA_BEVANDA[r.categoria]}: {arrotondaQuantita(r.volumeCorretto)}{" "}
+                    {r.unita}
+                  </Text>
+                  {r.prodotti.map((p) => (
+                    <Text key={p.bevanda.id} style={{ marginLeft: 12, color: "#57534e" }}>
+                      {p.bevanda.nome}: {arrotondaQuantita(p.volumeAssegnato)} {r.unita} (
+                      {p.unitaAcquistate} {p.bevanda.unita === "pz" ? "pz" : "unità"})
                     </Text>
                   ))}
-              </>
-            )}
-            {configBev.esposizione === "dettaglio" && (
-              <>
-                {beveraggio.righe
-                  .filter((r) => r.prodotti.length > 0)
-                  .map((r) => (
-                    <Text key={r.categoria}>
-                      {ETICHETTE_CATEGORIA_BEVANDA[r.categoria]}:{" "}
-                      {r.prodotti
-                        .map((p) => `${p.unitaAcquistate} unità (${p.bevanda.nome})`)
-                        .join(", ")}
+                  {r.prodotti.length === 0 && (
+                    <Text style={{ marginLeft: 12, color: "#57534e" }}>
+                      Nessun prodotto assegnato
                     </Text>
-                  ))}
-              </>
-            )}
+                  )}
+                </View>
+              ))}
           </View>
         )}
 

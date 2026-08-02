@@ -246,7 +246,8 @@ export default async function PaginaPreventivo({
                       <td className={classiTd}>
                         {riga.tipo_riga === "materia_prima" ? (
                           <>
-                            {Number(riga.quantita)} {materiaPrima?.unita_uso ?? ""} a persona
+                            {Math.round(Number(riga.quantita) * 1000) / 1000}{" "}
+                            {materiaPrima?.unita_uso ?? ""} a persona
                             <p className="text-xs text-stone-400">
                               tot. evento: {Math.round(quantitaEffettiva * 1000) / 1000}{" "}
                               {materiaPrima?.unita_uso ?? ""} ({ospitiTotali} ospiti, sfrido{" "}
@@ -255,14 +256,17 @@ export default async function PaginaPreventivo({
                           </>
                         ) : riga.tipo_riga === "consumabile" ? (
                           <>
-                            {Number(riga.quantita)} {consumabile?.unita_uso ?? ""} a persona
+                            {Math.round(Number(riga.quantita) * 1000) / 1000}{" "}
+                            {consumabile?.unita_uso ?? ""} a persona
                             <p className="text-xs text-stone-400">
                               tot. evento: {Math.round(quantitaEffettiva * 1000) / 1000}{" "}
                               {consumabile?.unita_uso ?? ""} ({ospitiTotali} ospiti, senza sfrido)
                             </p>
                           </>
+                        ) : riga.tipo_riga === "ricetta" ? (
+                          `${Math.round(Number(riga.quantita) * 1000) / 1000} porzioni`
                         ) : (
-                          Number(riga.quantita)
+                          Math.round(Number(riga.quantita) * 1000) / 1000
                         )}
                       </td>
                       <td className={classiTd}>
