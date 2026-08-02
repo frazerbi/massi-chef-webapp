@@ -59,7 +59,7 @@ Il campo che genera più dubbi in fase di inserimento è `fattore_conversione`. 
 
 Nel modulo "aggiungi prodotto" di una riga beveraggio (es. bibite, acqua, caffè), il campo quota % è precompilato con la quota ancora residua per la categoria (100% se non è ancora assegnato nessun prodotto). Se si aggiunge il primo prodotto senza modificare quel valore, la categoria risulta coperta al 100% e il modulo per aggiungerne altri **sparisce del tutto**, anche se esistono altri prodotti compatibili non ancora assegnati — non c'è tetto sul numero di prodotti, ma non c'è modo di liberare quota. Inoltre non è possibile modificare la quota di un prodotto già assegnato: l'unica via è rimuoverlo (con conseguente perdita dell'assegnazione) e reinserirlo con una quota più bassa.
 
-**Per inserire più prodotti nella stessa categoria** (es. Aranciata + Tè + Coca Cola sotto "bibite"): al momento di aggiungere il primo prodotto, scrivere a mano nel campo quota una percentuale più bassa del 100% (es. 34), invece di accettare il valore proposto — così il modulo resta visibile per aggiungerne altri.
+**Per inserire più prodotti nella stessa categoria** (es. Aranciata + Tè + Coca Cola sotto "bibite"): al momento di aggiungere il primo prodotto, scrivere a mano nel campo quota una percentuale più bassa del 100% (es. 34), invece di accettare il valore proposto — così il modulo resta visibile per aggiungerne altri. Stessa spiegazione, con più dettaglio sul calcolo beveraggio in generale, nella pagina **Bevande → "Come si calcola il beveraggio?"** del gestionale (`/bevande/guida`).
 
 Riferimenti: `app/(app)/preventivi/[id]/page.tsx` (condizione che nasconde il modulo, riga ~677) e `lib/db/preventivi.ts` (`aggiungiProdottoBeveraggio`). Non ancora corretto.
 
