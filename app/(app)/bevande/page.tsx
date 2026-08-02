@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   classiBottone,
   classiBottoneSecondario,
@@ -21,7 +22,11 @@ export default async function PaginaBevande() {
       <TitoloPagina
         titolo="Bevande"
         sottotitolo="Catalogo con formati, colli e prezzi: la base del calcolo beveraggio."
-      />
+      >
+        <Link href="/bevande/guida" className="text-sm text-stone-500 hover:underline">
+          Come si calcola il beveraggio?
+        </Link>
+      </TitoloPagina>
       <Riquadro>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[680px]">
