@@ -3,12 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { creaCliente } from "@/lib/db/clienti";
+import { consumabilePerId } from "@/lib/db/consumabili";
 import { materiaPrimaPerId } from "@/lib/db/materiePrime";
 import {
   aggiornaBeveraggio,
   aggiornaPreventivo,
   aggiornaRiga,
   aggiungiProdottoBeveraggio,
+  aggiungiRigaConsumabile,
   aggiungiRigaExtra,
   aggiungiRigaMateriaPrima,
   aggiungiRigaRicetta,
@@ -102,6 +104,19 @@ export async function azioneAggiungiRigaMateriaPrima(formData: FormData): Promis
     preventivoId,
     materiaPrimaId,
     materiaPrima.nome,
+    parseNumero(formData.get("quantita_persona"), "quantità a persona"),
+  );
+  revalidatePath(`/preventivi/${preventivoId}`);
+}
+
+export async function azioneAggiungiRigaConsumabile(formData: FormData): Promise<void> {
+  const preventivoId = parseTesto(formData.get("preventivo_id"), "preventivo");
+  const consumabileId = parseTesto(formData.get("consumabile_id"), "consumabile");
+  const consumabile = await consumabilePerId(consumabileId);
+  await aggiungiRigaConsumabile(
+    preventivoId,
+    consumabileId,
+    consumabile.nome,
     parseNumero(formData.get("quantita_persona"), "quantità a persona"),
   );
   revalidatePath(`/preventivi/${preventivoId}`);

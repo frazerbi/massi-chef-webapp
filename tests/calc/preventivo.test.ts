@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   calcolaTotaliPreventivo,
+  quantitaEventoConsumabile,
   quantitaEventoMateriaPrima,
 } from "@/lib/calc/preventivo";
 
@@ -119,6 +120,24 @@ describe("calcolaTotaliPreventivo (§5.4)", () => {
     expect(totali.foodCostCent).toBe(10000);
     expect(totali.costoExtraCent).toBe(0);
   });
+
+  it("riga consumabile (FEATURE-018) entra nell'extra, non nel food cost", () => {
+    const totali = calcolaTotaliPreventivo({
+      righe: [
+        {
+          tipoRiga: "consumabile",
+          quantita: 100, // già scalata (quantità evento), nessuno sfrido
+          costoUnitarioCent: 8,
+          prezzoUnitarioCent: null,
+        },
+      ],
+      costoBeveraggioCent: 0,
+      prezzoBeveraggioCent: 0,
+      margineTargetPct: 0,
+    });
+    expect(totali.foodCostCent).toBe(0);
+    expect(totali.costoExtraCent).toBe(800);
+  });
 });
 
 describe("quantitaEventoMateriaPrima (§5 — FEATURE-017)", () => {
@@ -141,5 +160,23 @@ describe("quantitaEventoMateriaPrima (§5 — FEATURE-017)", () => {
     expect(() => quantitaEventoMateriaPrima(10, 0, 10)).toThrow();
     expect(() => quantitaEventoMateriaPrima(10, 1.5, 10)).toThrow();
     expect(() => quantitaEventoMateriaPrima(10, 10, -1)).toThrow();
+  });
+});
+
+describe("quantitaEventoConsumabile (§5 — FEATURE-018)", () => {
+  it("quantità a persona × ospiti, senza sfrido", () => {
+    // 2 pz a persona, 100 ospiti -> 200 pz (nessuno sfrido, a differenza della materia prima)
+    expect(quantitaEventoConsumabile(2, 100)).toBeCloseTo(200, 6);
+  });
+
+  it("un solo ospite: quantità evento = quantità a persona", () => {
+    expect(quantitaEventoConsumabile(3, 1)).toBeCloseTo(3, 6);
+  });
+
+  it("lancia su quantità a persona o ospiti non validi", () => {
+    expect(() => quantitaEventoConsumabile(0, 10)).toThrow();
+    expect(() => quantitaEventoConsumabile(-5, 10)).toThrow();
+    expect(() => quantitaEventoConsumabile(10, 0)).toThrow();
+    expect(() => quantitaEventoConsumabile(10, 1.5)).toThrow();
   });
 });

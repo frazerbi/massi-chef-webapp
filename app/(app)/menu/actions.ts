@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  aggiungiConsumabileAMenu,
   aggiungiMateriaPrimaAMenu,
   aggiungiRicettaAMenu,
   creaMenu,
@@ -35,6 +36,17 @@ export async function azioneAggiungiMateriaPrimaAMenu(formData: FormData): Promi
   await aggiungiMateriaPrimaAMenu(
     menuId,
     parseTesto(formData.get("materia_prima_id"), "materia prima"),
+    parseNumero(formData.get("quantita_persona"), "quantità a persona"),
+    parseNumero(formData.get("ordine") || "0", "ordine"),
+  );
+  revalidatePath(`/menu/${menuId}`);
+}
+
+export async function azioneAggiungiConsumabileAMenu(formData: FormData): Promise<void> {
+  const menuId = parseTesto(formData.get("menu_id"), "menu");
+  await aggiungiConsumabileAMenu(
+    menuId,
+    parseTesto(formData.get("consumabile_id"), "consumabile"),
     parseNumero(formData.get("quantita_persona"), "quantità a persona"),
     parseNumero(formData.get("ordine") || "0", "ordine"),
   );

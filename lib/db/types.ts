@@ -33,7 +33,7 @@ export type CategoriaBevanda =
   | "succhi"
   | "caffe"
   | "amari_distillati";
-export type TipoRigaPreventivo = "ricetta" | "materia_prima" | "extra";
+export type TipoRigaPreventivo = "ricetta" | "materia_prima" | "consumabile" | "extra";
 export type CategoriaRigaExtra =
   | "personale"
   | "trasferta"
@@ -171,7 +171,9 @@ export interface MenuRiga extends RigaBase {
   ricetta_id: string | null;
   /** FEATURE-017: portata "nuda" senza ricetta (frutta, olive, patatine) */
   materia_prima_id: string | null;
-  /** quantità a persona nell'unità d'uso della materia prima; valorizzata solo con materia_prima_id */
+  /** FEATURE-018: consumabile diretto (piatti, bicchieri, posate) */
+  consumabile_id: string | null;
+  /** quantità a persona nell'unità d'uso della materia prima/consumabile; valorizzata solo con materia_prima_id o consumabile_id */
   quantita_persona: number | null;
   ordine: number;
 }
@@ -227,11 +229,14 @@ export interface PreventivoRiga extends RigaBase {
   ricetta_id: string | null;
   /** FEATURE-017: materia prima inserita direttamente, senza ricetta */
   materia_prima_id: string | null;
+  /** FEATURE-018: consumabile inserito direttamente, senza ricetta */
+  consumabile_id: string | null;
   categoria_extra: CategoriaRigaExtra | null;
   descrizione: string;
-  /** per righe ricetta/extra: quantità della riga; per righe materia_prima:
-   * quantità A PERSONA nell'unità d'uso — la quantità evento si calcola live
-   * (quantita × ospiti × (1+sfrido%), §5) e non è salvata qui */
+  /** per righe ricetta/extra: quantità della riga; per righe materia_prima/
+   * consumabile: quantità A PERSONA nell'unità d'uso — la quantità evento si
+   * calcola live (quantita × ospiti × (1+sfrido%) per materia_prima, quantita
+   * × ospiti senza sfrido per consumabile, §5) e non è salvata qui */
   quantita: number;
   costo_unitario_cent: number | null;
   prezzo_unitario_cent: number | null;

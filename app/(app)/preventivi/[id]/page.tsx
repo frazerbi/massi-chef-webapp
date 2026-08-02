@@ -10,6 +10,7 @@ import {
   TitoloPagina,
 } from "@/components/ui";
 import { formattaEuro } from "@/lib/calc/money";
+import { elencoConsumabili } from "@/lib/db/consumabili";
 import { elencoMateriePrime } from "@/lib/db/materiePrime";
 import { calcolaPreventivo } from "@/lib/db/preventivi";
 import { elencoRicette } from "@/lib/db/ricette";
@@ -22,6 +23,7 @@ import {
   azioneAggiornaPreventivo,
   azioneAggiornaRigaPrezzo,
   azioneAggiungiProdottoBeveraggio,
+  azioneAggiungiRigaConsumabile,
   azioneAggiungiRigaExtra,
   azioneAggiungiRigaMateriaPrima,
   azioneAggiungiRigaRicetta,
@@ -45,10 +47,11 @@ export default async function PaginaPreventivo({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [calcolo, ricette, materiePrimeAttive] = await Promise.all([
+  const [calcolo, ricette, materiePrimeAttive, consumabiliAttivi] = await Promise.all([
     calcolaPreventivo(id),
     elencoRicette(true),
     elencoMateriePrime(),
+    elencoConsumabili(),
   ]);
   const {
     dati,
@@ -59,8 +62,10 @@ export default async function PaginaPreventivo({
     totali,
     bevande,
     materiePrime,
+    consumabili,
   } = calcolo;
   const materiePrimePerId = new Map(materiePrime.map((mp) => [mp.id, mp]));
+  const consumabiliPerId = new Map(consumabili.map((c) => [c.id, c]));
   const {
     preventivo,
     cliente,
@@ -215,6 +220,9 @@ export default async function PaginaPreventivo({
                   const materiaPrima = riga.materia_prima_id
                     ? materiePrimePerId.get(riga.materia_prima_id)
                     : undefined;
+                  const consumabile = riga.consumabile_id
+                    ? consumabiliPerId.get(riga.consumabile_id)
+                    : undefined;
                   return (
                     <tr key={riga.id}>
                       <td className={`${classiTd} font-medium`}>
@@ -229,6 +237,11 @@ export default async function PaginaPreventivo({
                             materia prima
                           </span>
                         )}
+                        {riga.tipo_riga === "consumabile" && (
+                          <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs">
+                            consumabile
+                          </span>
+                        )}
                       </td>
                       <td className={classiTd}>
                         {riga.tipo_riga === "materia_prima" ? (
@@ -238,6 +251,14 @@ export default async function PaginaPreventivo({
                               tot. evento: {Math.round(quantitaEffettiva * 1000) / 1000}{" "}
                               {materiaPrima?.unita_uso ?? ""} ({ospitiTotali} ospiti, sfrido{" "}
                               {Number(preventivo.sfrido_pct)}%)
+                            </p>
+                          </>
+                        ) : riga.tipo_riga === "consumabile" ? (
+                          <>
+                            {Number(riga.quantita)} {consumabile?.unita_uso ?? ""} a persona
+                            <p className="text-xs text-stone-400">
+                              tot. evento: {Math.round(quantitaEffettiva * 1000) / 1000}{" "}
+                              {consumabile?.unita_uso ?? ""} ({ospitiTotali} ospiti, senza sfrido)
                             </p>
                           </>
                         ) : (
@@ -262,7 +283,8 @@ export default async function PaginaPreventivo({
                           >
                             <input type="hidden" name="preventivo_id" value={preventivo.id} />
                             <input type="hidden" name="riga_id" value={riga.id} />
-                            {riga.tipo_riga === "materia_prima" ? (
+                            {riga.tipo_riga === "materia_prima" ||
+                            riga.tipo_riga === "consumabile" ? (
                               <input
                                 name="quantita"
                                 inputMode="decimal"
@@ -315,7 +337,7 @@ export default async function PaginaPreventivo({
                 {righe.length === 0 && (
                   <tr>
                     <td className={`${classiTd} text-stone-500`} colSpan={6}>
-                      Nessuna riga: aggiungi ricette, materie prime o voci extra.
+                      Nessuna riga: aggiungi ricette, materie prime, consumabili o voci extra.
                     </td>
                   </tr>
                 )}
@@ -324,7 +346,7 @@ export default async function PaginaPreventivo({
           </div>
 
           {eBozza && (
-            <div className="mt-6 grid gap-6 lg:grid-cols-3">
+            <div className="mt-6 grid gap-6 lg:grid-cols-2 xl:grid-cols-4">
               <form action={azioneAggiungiRigaRicetta} className="space-y-3">
                 <h3 className="font-medium">Aggiungi ricetta</h3>
                 <input type="hidden" name="preventivo_id" value={preventivo.id} />
@@ -374,6 +396,34 @@ export default async function PaginaPreventivo({
                 <p className="text-xs text-stone-500">
                   Scala automaticamente per {ospitiTotali} ospiti + sfrido{" "}
                   {Number(preventivo.sfrido_pct)}%.
+                </p>
+                <button type="submit" className={classiBottone}>
+                  Aggiungi riga
+                </button>
+              </form>
+
+              <form action={azioneAggiungiRigaConsumabile} className="space-y-3">
+                <h3 className="font-medium">Aggiungi consumabile (senza ricetta)</h3>
+                <input type="hidden" name="preventivo_id" value={preventivo.id} />
+                <Etichetta testo="Consumabile">
+                  <select name="consumabile_id" required className={classiInput}>
+                    {consumabiliAttivi.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome} ({c.unita_uso})
+                      </option>
+                    ))}
+                  </select>
+                </Etichetta>
+                <Etichetta testo="Quantità a persona">
+                  <input
+                    name="quantita_persona"
+                    required
+                    inputMode="decimal"
+                    className={classiInput}
+                  />
+                </Etichetta>
+                <p className="text-xs text-stone-500">
+                  Scala automaticamente per {ospitiTotali} ospiti (senza sfrido).
                 </p>
                 <button type="submit" className={classiBottone}>
                   Aggiungi riga

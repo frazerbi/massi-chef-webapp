@@ -37,6 +37,17 @@ export async function elencoConsumabili(): Promise<Consumabile[]> {
   return (data ?? []) as Consumabile[];
 }
 
+export async function consumabilePerId(id: string): Promise<Consumabile> {
+  const supabase = await creaClientServer();
+  const { data, error } = await supabase
+    .from("consumabile")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw new Error(`Consumabile non trovato: ${error.message}`);
+  return data as Consumabile;
+}
+
 export async function creaConsumabile(input: InputConsumabile): Promise<string> {
   const supabase = await creaClientServer();
   const { data, error } = await supabase

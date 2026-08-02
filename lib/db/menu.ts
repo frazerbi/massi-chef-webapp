@@ -73,6 +73,25 @@ export async function aggiungiMateriaPrimaAMenu(
   if (error) throw new Error(`Aggiunta materia prima al menu fallita: ${error.message}`);
 }
 
+/** FEATURE-018: consumabile diretto (piatti, bicchieri, posate) senza
+ * ricetta. quantitaPersona è a persona, nell'unità d'uso del consumabile. */
+export async function aggiungiConsumabileAMenu(
+  menuId: string,
+  consumabileId: string,
+  quantitaPersona: number,
+  ordine: number,
+): Promise<void> {
+  validaQuantita(quantitaPersona, "quantità a persona");
+  const supabase = await creaClientServer();
+  const { error } = await supabase.from("menu_riga").insert({
+    menu_id: menuId,
+    consumabile_id: consumabileId,
+    quantita_persona: quantitaPersona,
+    ordine,
+  });
+  if (error) throw new Error(`Aggiunta consumabile al menu fallita: ${error.message}`);
+}
+
 export async function rimuoviRigaMenu(id: string): Promise<void> {
   const supabase = await creaClientServer();
   const { error } = await supabase.from("menu_riga").delete().eq("id", id);

@@ -10,7 +10,7 @@
 import { arrotondaCentesimi } from "./money";
 
 export interface RigaPreventivoCalc {
-  tipoRiga: "ricetta" | "materia_prima" | "extra";
+  tipoRiga: "ricetta" | "materia_prima" | "consumabile" | "extra";
   quantita: number;
   /** costo unitario in centesimi (frazionari ammessi); null = riga senza costo */
   costoUnitarioCent: number | null;
@@ -41,6 +41,25 @@ export function quantitaEventoMateriaPrima(
     throw new Error(`Sfrido non valido: ${sfridoPct}`);
   }
   return quantitaPersona * ospitiTotali * (1 + sfridoPct / 100);
+}
+
+/**
+ * FEATURE-018 — quantità evento di una riga consumabile diretta (piatti,
+ * bicchieri, posate) inserita nel preventivo: quantità a persona × ospiti,
+ * §5. A differenza delle righe materia prima (che applicano lo sfrido),
+ * questa NON lo applica: decisione esplicita dell'utente.
+ */
+export function quantitaEventoConsumabile(
+  quantitaPersona: number,
+  ospitiTotali: number,
+): number {
+  if (!Number.isFinite(quantitaPersona) || quantitaPersona <= 0) {
+    throw new Error(`Quantità a persona non valida: ${quantitaPersona}`);
+  }
+  if (!Number.isInteger(ospitiTotali) || ospitiTotali <= 0) {
+    throw new Error(`Ospiti totali non validi: ${ospitiTotali}`);
+  }
+  return quantitaPersona * ospitiTotali;
 }
 
 export interface TotaliPreventivoInput {
@@ -90,7 +109,7 @@ export function calcolaTotaliPreventivo(
     }
     const costoRiga =
       riga.costoUnitarioCent != null ? riga.costoUnitarioCent * riga.quantita : 0;
-    if (riga.tipoRiga === "extra") {
+    if (riga.tipoRiga === "extra" || riga.tipoRiga === "consumabile") {
       costoExtra += costoRiga;
     } else {
       foodCost += costoRiga;

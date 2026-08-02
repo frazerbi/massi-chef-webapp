@@ -8,6 +8,7 @@ import { costoPorzioneCent } from "@/lib/calc/ricetta";
 import { arrotondaCentesimi } from "@/lib/calc/money";
 import {
   calcolaTotaliPreventivo,
+  quantitaEventoConsumabile,
   quantitaEventoMateriaPrima,
   type TotaliPreventivo,
 } from "@/lib/calc/preventivo";
@@ -20,6 +21,7 @@ import type {
   Bevanda,
   CategoriaRigaExtra,
   Cliente,
+  Consumabile,
   FoodCostSnapshot,
   MateriaPrima,
   Preventivo,
@@ -185,39 +187,59 @@ export async function creaPreventivo(input: InputNuovoPreventivo): Promise<strin
       const idMateriePrime = righeMenu
         .filter((r) => r.materia_prima_id)
         .map((r) => r.materia_prima_id as string);
-      const [ricetteRes, materiePrimeRes] = await Promise.all([
+      const idConsumabili = righeMenu
+        .filter((r) => r.consumabile_id)
+        .map((r) => r.consumabile_id as string);
+      const [ricetteRes, materiePrimeRes, consumabiliRes] = await Promise.all([
         idRicette.length > 0
           ? supabase.from("ricetta").select("id, nome").in("id", idRicette)
           : Promise.resolve({ data: [], error: null }),
         idMateriePrime.length > 0
           ? supabase.from("materia_prima").select("id, nome").in("id", idMateriePrime)
           : Promise.resolve({ data: [], error: null }),
+        idConsumabili.length > 0
+          ? supabase.from("consumabile").select("id, nome").in("id", idConsumabili)
+          : Promise.resolve({ data: [], error: null }),
       ]);
       if (ricetteRes.error) throw new Error(ricetteRes.error.message);
       if (materiePrimeRes.error) throw new Error(materiePrimeRes.error.message);
+      if (consumabiliRes.error) throw new Error(consumabiliRes.error.message);
       const nomiRicette = new Map((ricetteRes.data ?? []).map((r) => [r.id, r.nome]));
       const nomiMateriePrime = new Map((materiePrimeRes.data ?? []).map((r) => [r.id, r.nome]));
+      const nomiConsumabili = new Map((consumabiliRes.data ?? []).map((r) => [r.id, r.nome]));
       const { error: erroreRighe } = await supabase.from("preventivo_riga").insert(
-        righeMenu.map((r, i) =>
-          r.ricetta_id
-            ? {
-                preventivo_id: preventivoId,
-                tipo_riga: "ricetta",
-                ricetta_id: r.ricetta_id,
-                descrizione: nomiRicette.get(r.ricetta_id) ?? "Ricetta",
-                quantita: adulti + bambini,
-                ordine: i,
-              }
-            : {
-                preventivo_id: preventivoId,
-                tipo_riga: "materia_prima",
-                materia_prima_id: r.materia_prima_id,
-                descrizione: nomiMateriePrime.get(r.materia_prima_id as string) ?? "Materia prima",
-                // quantita_persona del template: la quantità evento si calcola live
-                quantita: r.quantita_persona,
-                ordine: i,
-              },
-        ),
+        righeMenu.map((r, i) => {
+          if (r.ricetta_id) {
+            return {
+              preventivo_id: preventivoId,
+              tipo_riga: "ricetta",
+              ricetta_id: r.ricetta_id,
+              descrizione: nomiRicette.get(r.ricetta_id) ?? "Ricetta",
+              quantita: adulti + bambini,
+              ordine: i,
+            };
+          }
+          if (r.consumabile_id) {
+            return {
+              preventivo_id: preventivoId,
+              tipo_riga: "consumabile",
+              consumabile_id: r.consumabile_id,
+              descrizione: nomiConsumabili.get(r.consumabile_id) ?? "Consumabile",
+              // quantita_persona del template: la quantità evento si calcola live
+              quantita: r.quantita_persona,
+              ordine: i,
+            };
+          }
+          return {
+            preventivo_id: preventivoId,
+            tipo_riga: "materia_prima",
+            materia_prima_id: r.materia_prima_id,
+            descrizione: nomiMateriePrime.get(r.materia_prima_id as string) ?? "Materia prima",
+            // quantita_persona del template: la quantità evento si calcola live
+            quantita: r.quantita_persona,
+            ordine: i,
+          };
+        }),
       );
       if (erroreRighe) throw new Error(erroreRighe.message);
     }
@@ -351,6 +373,29 @@ export async function aggiungiRigaMateriaPrima(
     quantita: quantitaPersona,
   });
   if (error) throw new Error(`Aggiunta riga materia prima fallita: ${error.message}`);
+}
+
+/** FEATURE-018: consumabile inserito direttamente, senza ricetta (piatti,
+ * bicchieri, posate). quantitaPersona è a persona, nell'unità d'uso del
+ * consumabile: la quantità evento si calcola live in calcolaPreventivo, SENZA
+ * sfrido (a differenza della riga materia prima). */
+export async function aggiungiRigaConsumabile(
+  preventivoId: string,
+  consumabileId: string,
+  descrizione: string,
+  quantitaPersona: number,
+): Promise<void> {
+  await verificaBozza(preventivoId);
+  validaQuantita(quantitaPersona, "quantità a persona");
+  const supabase = await creaClientServer();
+  const { error } = await supabase.from("preventivo_riga").insert({
+    preventivo_id: preventivoId,
+    tipo_riga: "consumabile",
+    consumabile_id: consumabileId,
+    descrizione: validaTesto(descrizione, "descrizione"),
+    quantita: quantitaPersona,
+  });
+  if (error) throw new Error(`Aggiunta riga consumabile fallita: ${error.message}`);
 }
 
 export async function aggiungiRigaExtra(
@@ -644,21 +689,26 @@ export interface CalcoloPreventivo {
   bevande: Bevanda[];
   /** materie prime (incluse soft-deleted, referenziate da righe storiche) per la UI */
   materiePrime: MateriaPrima[];
+  /** consumabili (incluse soft-deleted, referenziate da righe storiche) per la UI */
+  consumabili: Consumabile[];
 }
 
 export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> {
   const dati = await preventivoCompleto(id);
   const { preventivo, righe, beveraggio, righeBeveraggio, prodottiBeveraggio } = dati;
   const supabase = await creaClientServer();
-  const [bevandeRes, materiePrimeRes] = await Promise.all([
+  const [bevandeRes, materiePrimeRes, consumabiliRes] = await Promise.all([
     supabase.from("bevanda").select("*"),
     supabase.from("materia_prima").select("*"),
+    supabase.from("consumabile").select("*"),
   ]);
   if (bevandeRes.error) throw new Error(bevandeRes.error.message);
   if (materiePrimeRes.error) throw new Error(materiePrimeRes.error.message);
+  if (consumabiliRes.error) throw new Error(consumabiliRes.error.message);
   const bevande = (bevandeRes.data ?? []) as Bevanda[];
   const bevandePerId = new Map(bevande.map((b) => [b.id, b]));
   const materiePrime = (materiePrimeRes.data ?? []) as MateriaPrima[];
+  const consumabili = (consumabiliRes.data ?? []) as Consumabile[];
 
   const eBozza = preventivo.stato === "bozza";
   const snapshot = preventivo.food_cost_snapshot;
@@ -668,6 +718,7 @@ export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> 
   const quantitaEffettivaRighe = new Map<string, number>();
   const ospitiTotali = preventivo.numero_ospiti_adulti + preventivo.numero_ospiti_bambini;
   const materiePrimePerId = new Map(materiePrime.map((mp) => [mp.id, mp]));
+  const consumabiliPerId = new Map(consumabili.map((c) => [c.id, c]));
   let grafo: Awaited<ReturnType<typeof caricaGrafoCalc>> | null = null;
   for (const riga of righe) {
     if (riga.tipo_riga === "extra") {
@@ -693,6 +744,29 @@ export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> 
             prezzoAcquistoCent: Number(mp.prezzo_acquisto_cent),
             fattoreConversione: Number(mp.fattore_conversione),
             resaPercentuale: Number(mp.resa_percentuale),
+          }),
+        );
+      } else {
+        const congelato = snapshot?.righe.find((r) => r.riga_id === riga.id);
+        costiRigheCent.set(riga.id, congelato?.costo_unitario_cent ?? riga.costo_unitario_cent);
+      }
+      continue;
+    }
+    if (riga.tipo_riga === "consumabile") {
+      // FEATURE-018: nessuno sfrido, a differenza della riga materia prima
+      const quantitaEvento = quantitaEventoConsumabile(Number(riga.quantita), ospitiTotali);
+      quantitaEffettivaRighe.set(riga.id, quantitaEvento);
+      if (eBozza) {
+        const c = consumabiliPerId.get(riga.consumabile_id!);
+        if (!c) {
+          throw new Error(`Consumabile non trovato per la riga "${riga.descrizione}"`);
+        }
+        costiRigheCent.set(
+          riga.id,
+          costoUnitaUsoCent({
+            prezzoAcquistoCent: Number(c.prezzo_acquisto_cent),
+            fattoreConversione: Number(c.fattore_conversione),
+            resaPercentuale: 100,
           }),
         );
       } else {
@@ -816,6 +890,7 @@ export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> 
     totali,
     bevande,
     materiePrime,
+    consumabili,
   };
 }
 
@@ -971,6 +1046,7 @@ export async function duplicaPreventivo(
         tipo_riga: r.tipo_riga,
         ricetta_id: r.ricetta_id,
         materia_prima_id: r.materia_prima_id,
+        consumabile_id: r.consumabile_id,
         categoria_extra: r.categoria_extra,
         descrizione: r.descrizione,
         quantita: r.quantita,
