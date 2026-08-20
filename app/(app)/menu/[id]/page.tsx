@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import {
   classiBottone,
   classiBottoneSecondario,
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui";
 import { formattaEuro } from "@/lib/calc/money";
 import { costoUnitaUsoCent } from "@/lib/calc/materiaPrima";
+import { raggruppaRighePreventivo } from "@/lib/calc/raggruppamentoPreventivo";
 import { costoPorzioneCent } from "@/lib/calc/ricetta";
 import { elencoConsumabili } from "@/lib/db/consumabili";
 import { elencoMateriePrime } from "@/lib/db/materiePrime";
@@ -91,6 +93,21 @@ export default async function PaginaDettaglioMenu({
     }
     return { riga, ricetta: undefined, materiaPrima, consumabile: undefined, costo, errore };
   });
+  // FEATURE-013: stesse categorie e stesso ordine del preventivo (funzione pura
+  // condivisa, CLAUDE.md §3). `ordine` resta come sotto-ordinamento manuale
+  // dentro ogni gruppo: le righe arrivano già ordinate e il raggruppamento è stabile.
+  const gruppiRighe = raggruppaRighePreventivo(
+    righeConCosto.map((voce) => ({
+      ...voce,
+      tipoRiga: voce.ricetta
+        ? ("ricetta" as const)
+        : voce.consumabile
+          ? ("consumabile" as const)
+          : ("materia_prima" as const),
+      categoriaPortata: voce.ricetta?.categoria_portata ?? null,
+      tipoConsumabile: voce.consumabile?.tipo_consumabile ?? null,
+    })),
+  );
   const erroreCosto = righeConCosto.find((r) => r.errore)?.errore ?? null;
   const costoTotalePorzioneCent = righeConCosto.reduce(
     (somma, r) => somma + (r.costo ?? 0),
@@ -121,44 +138,56 @@ export default async function PaginaDettaglioMenu({
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {righeConCosto.map(({ riga, ricetta, materiaPrima, consumabile, costo }) => (
-                <tr key={riga.id}>
-                  <td className={classiTd}>{riga.ordine}</td>
-                  <td className={`${classiTd} font-medium`}>
-                    {ricetta?.nome ?? materiaPrima?.nome ?? consumabile?.nome ?? "—"}
-                    {materiaPrima && (
-                      <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs font-normal">
-                        materia prima
-                      </span>
-                    )}
-                    {consumabile && (
-                      <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs font-normal">
-                        consumabile
-                      </span>
-                    )}
-                  </td>
-                  <td className={classiTd}>
-                    {ricetta
-                      ? ETICHETTE_PORTATA[ricetta.categoria_portata]
-                      : materiaPrima
-                        ? `${Number(riga.quantita_persona)} ${materiaPrima.unita_uso} a persona`
-                        : consumabile
-                          ? `${Number(riga.quantita_persona)} ${consumabile.unita_uso} a persona`
-                          : "—"}
-                  </td>
-                  <td className={classiTd}>
-                    {costo != null ? formattaEuro(Math.round(costo)) : "⚠"}
-                  </td>
-                  <td className={classiTd}>
-                    <form action={azioneRimuoviRigaMenu}>
-                      <input type="hidden" name="id" value={riga.id} />
-                      <input type="hidden" name="menu_id" value={menu.id} />
-                      <button type="submit" className={classiBottoneSecondario}>
-                        Rimuovi
-                      </button>
-                    </form>
-                  </td>
-                </tr>
+              {gruppiRighe.map((gruppo) => (
+                <Fragment key={gruppo.chiave}>
+                  <tr className="bg-stone-50">
+                    <td
+                      className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-stone-500"
+                      colSpan={5}
+                    >
+                      {gruppo.etichetta}
+                    </td>
+                  </tr>
+                  {gruppo.righe.map(({ riga, ricetta, materiaPrima, consumabile, costo }) => (
+                  <tr key={riga.id}>
+                    <td className={classiTd}>{riga.ordine}</td>
+                    <td className={`${classiTd} font-medium`}>
+                      {ricetta?.nome ?? materiaPrima?.nome ?? consumabile?.nome ?? "—"}
+                      {materiaPrima && (
+                        <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs font-normal">
+                          materia prima
+                        </span>
+                      )}
+                      {consumabile && (
+                        <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs font-normal">
+                          consumabile
+                        </span>
+                      )}
+                    </td>
+                    <td className={classiTd}>
+                      {ricetta
+                        ? ETICHETTE_PORTATA[ricetta.categoria_portata]
+                        : materiaPrima
+                          ? `${Number(riga.quantita_persona)} ${materiaPrima.unita_uso} a persona`
+                          : consumabile
+                            ? `${Number(riga.quantita_persona)} ${consumabile.unita_uso} a persona`
+                            : "—"}
+                    </td>
+                    <td className={classiTd}>
+                      {costo != null ? formattaEuro(Math.round(costo)) : "⚠"}
+                    </td>
+                    <td className={classiTd}>
+                      <form action={azioneRimuoviRigaMenu}>
+                        <input type="hidden" name="id" value={riga.id} />
+                        <input type="hidden" name="menu_id" value={menu.id} />
+                        <button type="submit" className={classiBottoneSecondario}>
+                          Rimuovi
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+                </Fragment>
               ))}
               {righe.length === 0 && (
                 <tr>
