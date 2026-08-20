@@ -60,7 +60,7 @@ export default function FormConsumabile({
           className={classiInput}
         />
       </Etichetta>
-      <Etichetta testo="Fattore di conversione (unità d'uso per unità di acquisto)">
+      <Etichetta testo="Quante unità d'uso in una unità d'acquisto?">
         <input
           name="fattore"
           required
@@ -68,6 +68,9 @@ export default function FormConsumabile({
           defaultValue={c ? String(c.fattore_conversione) : "1"}
           className={classiInput}
         />
+        <p className="mt-1 text-xs text-stone-500">
+          Es. una confezione da 50 tovaglioli → 50; un rotolo da 1 kg → 1000 g.
+        </p>
       </Etichetta>
       <Etichetta testo="Fornitore (opzionale)">
         <input

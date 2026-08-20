@@ -26,6 +26,16 @@ export default async function PaginaProfiliBeveraggio() {
         </form>
       </TitoloPagina>
 
+      <p className="mb-4 text-xs text-stone-500">
+        Un profilo è solo un <strong>punto di partenza</strong>: quando lo applichi a un
+        preventivo, le quantità a testa vengono copiate lì e da quel momento correttivi,
+        prodotti assegnati e correzioni manuali valgono per quel preventivo soltanto —
+        modificare il profilo non tocca i preventivi già creati.{" "}
+        <Link href="/bevande/guida" className="underline">
+          Guida al beveraggio
+        </Link>
+      </p>
+
       <Riquadro>
         {profili.length === 0 ? (
           <p className="text-sm text-stone-500">

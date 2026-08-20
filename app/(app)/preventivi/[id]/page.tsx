@@ -633,6 +633,18 @@ export default async function PaginaPreventivo({
               )}
 
               {!erroreBeveraggio && beveraggio ? (
+                <>
+                <p className="mb-3 text-xs text-stone-500">
+                  Ogni categoria parte da una quantità <strong>teorica</strong> a testa presa
+                  dal profilo; il valore <strong>corretto</strong> è quello dopo correttivi,
+                  fattore di distribuzione e scalatura ospiti, e puoi sovrascriverlo a mano
+                  solo per questo preventivo. Assegnando uno o più prodotti indichi con quale
+                  bevanda coprire la categoria (la <strong>quota %</strong> ripartisce il
+                  volume fra più prodotti) e da lì si calcolano colli e costo.{" "}
+                  <Link href="/bevande/guida" className="underline">
+                    Guida al beveraggio
+                  </Link>
+                </p>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[900px]">
                     <thead className="border-b border-stone-200">
@@ -869,6 +881,7 @@ export default async function PaginaPreventivo({
                     )}
                   </p>
                 </div>
+                </>
               ) : (
                 !erroreBeveraggio && (
                   <p className="text-sm text-stone-500">
