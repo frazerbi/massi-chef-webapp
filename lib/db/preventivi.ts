@@ -655,6 +655,48 @@ export async function aggiungiProdottoBeveraggio(
   if (error) throw new Error(`Assegnazione prodotto fallita: ${error.message}`);
 }
 
+/** Modifica la quota di un prodotto già assegnato (fix UX del 20/08/2026:
+ * prima l'unico modo di correggerla era rimuovere e reinserire il prodotto,
+ * e con la quota esaurita il modulo di aggiunta spariva del tutto). Stessa
+ * validazione dell'inserimento: la somma delle quote della categoria non può
+ * superare 100, escludendo dal conteggio il prodotto che si sta modificando. */
+export async function aggiornaQuotaProdottoBeveraggio(
+  preventivoId: string,
+  prodottoId: string,
+  quotaPct: number,
+): Promise<void> {
+  await verificaBozza(preventivoId);
+  if (!Number.isFinite(quotaPct) || quotaPct <= 0 || quotaPct > 100) {
+    throw new Error(`Quota non valida: ${quotaPct}`);
+  }
+  const supabase = await creaClientServer();
+  const { data: prodotto, error: erroreProdotto } = await supabase
+    .from("preventivo_beveraggio_prodotto")
+    .select("id, preventivo_beveraggio_riga_id")
+    .eq("id", prodottoId)
+    .single();
+  if (erroreProdotto) {
+    throw new Error(`Prodotto beveraggio non trovato: ${erroreProdotto.message}`);
+  }
+  const { data: fratelli, error: erroreFratelli } = await supabase
+    .from("preventivo_beveraggio_prodotto")
+    .select("id, quota_pct")
+    .eq("preventivo_beveraggio_riga_id", prodotto.preventivo_beveraggio_riga_id)
+    .neq("id", prodottoId);
+  if (erroreFratelli) throw new Error(erroreFratelli.message);
+  const quotaAltri = (fratelli ?? []).reduce((somma, p) => somma + Number(p.quota_pct), 0);
+  if (quotaAltri + quotaPct > 100 + TOLLERANZA_QUOTA_PCT) {
+    throw new Error(
+      `Quota totale oltre il 100%: gli altri prodotti coprono già ${quotaAltri}%, resta disponibile ${Math.round((100 - quotaAltri) * 100) / 100}%`,
+    );
+  }
+  const { error } = await supabase
+    .from("preventivo_beveraggio_prodotto")
+    .update({ quota_pct: quotaPct })
+    .eq("id", prodottoId);
+  if (error) throw new Error(`Aggiornamento quota fallito: ${error.message}`);
+}
+
 export async function rimuoviProdottoBeveraggio(
   preventivoId: string,
   prodottoId: string,

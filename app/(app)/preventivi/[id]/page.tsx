@@ -23,6 +23,7 @@ import {
 import {
   azioneAggiornaBeveraggio,
   azioneAggiornaPreventivo,
+  azioneAggiornaQuotaProdottoBeveraggio,
   azioneAggiornaRigaPrezzo,
   azioneAggiungiProdottoBeveraggio,
   azioneAggiungiRigaConsumabile,
@@ -726,8 +727,38 @@ export default async function PaginaPreventivo({
                                       className="flex flex-wrap items-center gap-2 text-sm"
                                     >
                                       <span className="font-medium">{p.bevanda.nome}</span>
+                                      {eBozza && prodottoDb ? (
+                                        <form
+                                          action={azioneAggiornaQuotaProdottoBeveraggio}
+                                          className="flex items-center gap-1"
+                                        >
+                                          <input
+                                            type="hidden"
+                                            name="preventivo_id"
+                                            value={preventivo.id}
+                                          />
+                                          <input
+                                            type="hidden"
+                                            name="prodotto_id"
+                                            value={prodottoDb.id}
+                                          />
+                                          <input
+                                            name="quota"
+                                            inputMode="decimal"
+                                            defaultValue={String(p.quotaPct)}
+                                            title="Quota di copertura della categoria"
+                                            className="w-14 rounded-md border border-stone-300 px-2 py-1 text-sm"
+                                          />
+                                          <span className="text-xs text-stone-500">%</span>
+                                          <button type="submit" className={classiBottoneSecondario}>
+                                            OK
+                                          </button>
+                                        </form>
+                                      ) : (
+                                        <span className="text-stone-500">{p.quotaPct}%</span>
+                                      )}
                                       <span className="text-stone-500">
-                                        {p.quotaPct}% · {p.colli} colli · {formattaEuro(p.costoCent)}
+                                        {p.colli} colli · {formattaEuro(p.costoCent)}
                                       </span>
                                       {eBozza && prodottoDb && (
                                         <form action={azioneRimuoviProdottoBeveraggio}>
@@ -756,6 +787,12 @@ export default async function PaginaPreventivo({
                               {r.volumeCorretto > 0 && r.quotaCopertaPct < 100 - 1e-6 && (
                                 <p className="mt-1 text-xs text-amber-700">
                                   ⚠ copertura {r.quotaCopertaPct}% — costo parziale
+                                </p>
+                              )}
+                              {eBozza && rigaDb && bevandeCompatibili.length > 0 && quotaResidua <= 0 && (
+                                <p className="mt-2 text-xs text-stone-500">
+                                  Quota assegnata al 100%: per aggiungere un altro prodotto,
+                                  abbassa prima la quota di uno di quelli qui sopra.
                                 </p>
                               )}
                               {eBozza && rigaDb && quotaResidua > 0 && bevandeCompatibili.length > 0 && (

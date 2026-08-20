@@ -9,6 +9,7 @@ import {
   aggiornaBeveraggio,
   aggiornaPreventivo,
   aggiornaRiga,
+  aggiornaQuotaProdottoBeveraggio,
   aggiungiProdottoBeveraggio,
   aggiungiRigaConsumabile,
   aggiungiRigaExtra,
@@ -216,6 +217,18 @@ export async function azioneAggiungiProdottoBeveraggio(formData: FormData): Prom
     preventivoId,
     parseTesto(formData.get("riga_id"), "riga"),
     parseTesto(formData.get("bevanda_id"), "bevanda"),
+    parseNumero(formData.get("quota"), "quota"),
+  );
+  revalidatePath(`/preventivi/${preventivoId}`);
+}
+
+export async function azioneAggiornaQuotaProdottoBeveraggio(
+  formData: FormData,
+): Promise<void> {
+  const preventivoId = parseTesto(formData.get("preventivo_id"), "preventivo");
+  await aggiornaQuotaProdottoBeveraggio(
+    preventivoId,
+    parseTesto(formData.get("prodotto_id"), "prodotto"),
     parseNumero(formData.get("quota"), "quota"),
   );
   revalidatePath(`/preventivi/${preventivoId}`);
