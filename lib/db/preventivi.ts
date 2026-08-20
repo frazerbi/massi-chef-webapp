@@ -1019,6 +1019,44 @@ export async function inviaPreventivo(id: string): Promise<void> {
   await registraStato(id, "inviato");
 }
 
+/**
+ * Riapre un preventivo non più in bozza riportandolo a bozza modificabile.
+ * È una deroga esplicita all'invariante 1 (immutabilità dei preventivi inviati),
+ * decisa con l'utente il 20/08/2026: lo snapshot dei costi viene azzerato, quindi
+ * da qui il preventivo torna a ricalcolare tutto live sui prezzi correnti, come
+ * una bozza qualunque. La traccia del passaggio resta in `preventivo_stato_storico`.
+ * L'alternativa non distruttiva resta `duplicaPreventivo(id, true)` (revisione).
+ */
+export async function riapriPreventivo(id: string): Promise<void> {
+  const supabase = await creaClientServer();
+  const { data, error } = await supabase
+    .from("preventivo")
+    .select("stato")
+    .eq("id", id)
+    .single();
+  if (error) throw new Error(`Preventivo non trovato: ${error.message}`);
+  if ((data.stato as StatoPreventivo) === "bozza") {
+    throw new Error("Il preventivo è già in bozza: si modifica direttamente");
+  }
+
+  // i costi congelati sulle righe tornano nulli; le righe extra conservano il
+  // proprio costo unitario, che è un dato inserito a mano e non un congelamento
+  // (stessa distinzione fatta in duplicaPreventivo)
+  const { error: erroreRighe } = await supabase
+    .from("preventivo_riga")
+    .update({ costo_unitario_cent: null })
+    .eq("preventivo_id", id)
+    .neq("tipo_riga", "extra");
+  if (erroreRighe) throw new Error(`Riapertura righe fallita: ${erroreRighe.message}`);
+
+  const { error: erroreUpdate } = await supabase
+    .from("preventivo")
+    .update({ stato: "bozza", food_cost_snapshot: null, inviato_at: null })
+    .eq("id", id);
+  if (erroreUpdate) throw new Error(`Riapertura fallita: ${erroreUpdate.message}`);
+  await registraStato(id, "bozza");
+}
+
 const TRANSIZIONI_AMMESSE: Record<StatoPreventivo, StatoPreventivo[]> = {
   bozza: ["inviato"],
   inviato: ["confermato", "rifiutato", "scaduto"],

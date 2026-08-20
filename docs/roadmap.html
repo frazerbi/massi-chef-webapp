@@ -436,6 +436,7 @@
   <div class="changelog">
     <h2>Changelog</h2>
     <ul>
+      <li><time>2026-08-20</time><strong>FEATURE-019 implementata: un preventivo inviato si può riportare in bozza.</strong> Deroga esplicita all'invariante 1, richiesta dall'utente. Pulsante «Riporta in bozza per modificarlo» con doppia conferma (intenzione → conferma dopo aver letto le conseguenze); la conferma è verificata anche lato server. Riaprendo, lo snapshot dei costi viene <strong>azzerato</strong> e il preventivo ricalcola live sui prezzi correnti. Ammesso da qualsiasi stato, <code>confermato</code> incluso. Nessuna migrazione.</li>
       <li><time>2026-08-20</time><strong>Chiusura fase 1 — cinque voci in coda completate.</strong> FEATURE-011 (pagine di modifica per consumabili e bevande: le funzioni <code>aggiornaConsumabile</code>/<code>aggiornaBevanda</code> esistevano ma non erano chiamate da nessuna parte), fix della limitazione beveraggio segnalata il 02/08 (quota % modificabile dopo l'assegnazione, modulo di aggiunta non più nascosto a quota esaurita), FEATURE-013 (menu raggruppato per portata, riusa la funzione pura di CL-1), FEATURE-009 (marca sulle materie prime, migrazione <code>0009_materia_prima_marca.sql</code> <strong>applicata su Supabase</strong>), UX-001/002/003 (domanda esplicita al posto di "fattore di conversione", "Resa utilizzabile (%)" con esempio live, testi introduttivi su beveraggio e profili).</li>
       <li><time>2026-08-20</time>CL-1, ritocco alle etichette: i due gruppi dei consumabili si chiamano <strong>"Consumabili apparecchio"</strong> e <strong>"Consumabili cucina"</strong> (prima "Apparecchiatura" e "Consumabili"), apparecchio per primo. Cambio di sole etichette: i valori dell'enum <code>tipo_consumabile</code> restano <code>apparecchiatura</code>/<code>consumabile</code>, nessuna migrazione e nessun dato toccato.</li>
       <li><time>2026-08-20</time><strong>CL-1 implementata.</strong> Righe del preventivo raggruppate per categoria sia nella pagina sia nel PDF, con una sola funzione pura condivisa (<code>lib/calc/raggruppamentoPreventivo.ts</code>, testata in <code>tests/calc/</code>): ordine antipasti → primi → secondi → contorni → dessert → finger → altre portate → Apparecchiatura → Consumabili → Altri prodotti → Servizi e altre voci, gruppi vuoti non stampati, nessun subtotale, totale unico in fondo. Migrazione <code>0008_tipo_consumabile.sql</code> (enum <code>categoria_consumabile_tipo</code> + colonna <code>tipo_consumabile</code> su <code>consumabile</code>, default <code>consumabile</code>) creata e <strong>applicata su Supabase</strong> il 20/08/2026. Punto scoperto in analisi risolto: <code>calcolaPreventivo</code> ora espone anche le ricette, così la <code>categoria_portata</code> è disponibile a pagina e PDF. Nessun costo ricalcolato: puro riordino di presentazione.</li>
@@ -733,6 +734,30 @@
   <section class="group">
     <h2 class="group-title">Feature e UX — progetto di massima</h2>
     <p class="soft" style="margin-top:-0.6rem;">Molte richieste presuppongono entità non ancora costruite: le migrazioni applicate arrivano alla <code>0005</code> (più <code>0006</code>/<code>0007</code> create ma non ancora applicate) e coprono la sola Fase 1 con le sue estensioni — mancano <code>evento</code>, <code>attrezzatura</code>, <code>pagamento</code>, <code>lotto</code>. Il CLAUDE.md fissa un ordine di fase preciso e chiede di non anticiparlo: lo segnalo caso per caso.</p>
+
+    <article class="card done">
+      <div class="card-head">
+        <span class="card-id">FEATURE-019</span>
+        <span class="badge done">Implementata — 20/08/2026</span>
+      </div>
+      <h3 class="card-title">Riportare in bozza un preventivo già inviato</h3>
+      <p>Richiesta: «quando un preventivo viene contrassegnato come inviato non può più essere toccato, vorrei che invece l'utente possa cambiargli stato per modificarlo, magari con una doppia conferma». Tocca direttamente l'<strong>invariante 1</strong> del CLAUDE.md (immutabilità dei preventivi inviati), quindi le due decisioni sotto sono state chieste prima di scrivere codice.</p>
+
+      <h4>Decisioni di dominio prese con l'utente</h4>
+      <ul class="plain">
+        <li><strong>Snapshot azzerato:</strong> riaprendo, <code>food_cost_snapshot</code>, <code>inviato_at</code> e i costi unitari congelati sulle righe vengono cancellati; il preventivo torna a ricalcolare tutto live sui prezzi correnti, cioè diventa una bozza vera. Scartata l'alternativa "snapshot conservato", che avrebbe mescolato due epoche di costo nello stesso documento. <strong>Conseguenza accettata:</strong> se i prezzi delle materie prime sono cambiati dopo l'invio, i totali cambiano alla riapertura.</li>
+        <li><strong>Ammesso da qualsiasi stato,</strong> <code>confermato</code> incluso: nessun blocco residuo. La traccia dell'accordo originale resta solo in <code>preventivo_stato_storico</code>. <code>duplicaPreventivo(id, true)</code> (revisione) resta l'alternativa non distruttiva ed è citata nel testo di conferma.</li>
+      </ul>
+
+      <h4>Cosa è stato implementato</h4>
+      <ul class="plain">
+        <li><span class="file">lib/db/preventivi.ts</span>: <code>riapriPreventivo(id)</code> — rifiuta un preventivo già in bozza, azzera i costi congelati sulle righe non-<code>extra</code> (quelle extra hanno un costo inserito a mano, non congelato: stessa distinzione già fatta in <code>duplicaPreventivo</code>), riporta lo stato a <code>bozza</code> e registra il passaggio nello storico. Volutamente <strong>fuori</strong> da <code>TRANSIZIONI_AMMESSE</code>/<code>cambiaStatoPreventivo</code>, così la riapertura non è raggiungibile da un cambio di stato generico.</li>
+        <li><span class="file">app/(app)/preventivi/actions.ts</span>: <code>azioneRiapriPreventivo</code> — richiede un campo di conferma esplicito nel form, non solo il click in UI.</li>
+        <li><span class="file">components/BottoneRiapriPreventivo.tsx</span>: doppia conferma in due passaggi — il primo click apre un pannello rosso che elenca le conseguenze (costi ricalcolati, versione già in mano al cliente non più corrispondente, alternativa «Crea revisione»), il secondo esegue.</li>
+        <li><span class="file">app/(app)/preventivi/[id]/page.tsx</span>: il banner giallo dei preventivi non-bozza ora spiega le due strade (revisione o riapertura) e ospita il pulsante.</li>
+      </ul>
+      <p class="soft">Nessuna migrazione: nessun trigger o vincolo sul database imponeva l'immutabilità, che era garantita dal solo codice applicativo (<code>verificaBozza</code>).</p>
+    </article>
 
     <article class="card done">
       <div class="card-head">

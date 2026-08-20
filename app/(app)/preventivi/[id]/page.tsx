@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import Link from "next/link";
+import { BottoneRiapriPreventivo } from "@/components/BottoneRiapriPreventivo";
 import {
   classiBottone,
   classiBottoneSecondario,
@@ -35,6 +36,7 @@ import {
   azioneEliminaPreventivo,
   azioneImpostaCorrezioneBeveraggio,
   azioneImpostaRigaBeveraggio,
+  azioneRiapriPreventivo,
   azioneRimuoviProdottoBeveraggio,
   azioneRimuoviRiga,
   azioneRimuoviRigaBeveraggio,
@@ -172,11 +174,23 @@ export default async function PaginaPreventivo({
       </TitoloPagina>
 
       {!eBozza && (
-        <p className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
-          Preventivo inviato: i costi sono congelati nello snapshot (
-          {preventivo.food_cost_snapshot?.congelato_at?.slice(0, 10)}). Le modifiche
-          richiedono una revisione.
-        </p>
+        <div className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900">
+          <p>
+            Preventivo {preventivo.stato}: i costi sono congelati nello snapshot
+            {preventivo.food_cost_snapshot?.congelato_at
+              ? ` del ${preventivo.food_cost_snapshot.congelato_at.slice(0, 10)}`
+              : ""}
+            . Per modificarlo puoi creare una revisione — l&apos;originale resta
+            com&apos;è — oppure riportare questo stesso preventivo in bozza.
+          </p>
+          <div className="mt-3">
+            <BottoneRiapriPreventivo
+              preventivoId={preventivo.id}
+              stato={preventivo.stato}
+              azione={azioneRiapriPreventivo}
+            />
+          </div>
+        </div>
       )}
 
       {/* Totali sempre visibili (§5.4: food cost %, utile stimato, margine effettivo) */}

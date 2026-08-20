@@ -21,6 +21,7 @@ import {
   eliminaPreventivo,
   impostaCorrezioneBeveraggio,
   impostaRigaBeveraggio,
+  riapriPreventivo,
   rimuoviProdottoBeveraggio,
   rimuoviRiga,
   rimuoviRigaBeveraggio,
@@ -247,6 +248,19 @@ export async function azioneCambiaStato(formData: FormData): Promise<void> {
   const id = parseTesto(formData.get("id"), "id");
   const stato = parseTesto(formData.get("stato"), "stato") as StatoPreventivo;
   await cambiaStatoPreventivo(id, stato);
+  revalidatePath(`/preventivi/${id}`);
+  revalidatePath("/preventivi");
+}
+
+/** Riporta in bozza un preventivo già inviato (deroga all'invariante 1: lo
+ * snapshot dei costi viene azzerato). La conferma esplicita è richiesta anche
+ * qui, non solo in UI: l'azione non deve essere raggiungibile per sbaglio. */
+export async function azioneRiapriPreventivo(formData: FormData): Promise<void> {
+  const id = parseTesto(formData.get("id"), "id");
+  if (formData.get("conferma") !== "riporta-in-bozza") {
+    throw new Error("Riapertura non confermata");
+  }
+  await riapriPreventivo(id);
   revalidatePath(`/preventivi/${id}`);
   revalidatePath("/preventivi");
 }
