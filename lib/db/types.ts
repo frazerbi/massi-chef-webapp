@@ -109,6 +109,8 @@ export interface Impostazioni {
 export interface MateriaPrima extends RigaBase {
   nome: string;
   categoria: string;
+  /** FEATURE-009: marca del prodotto, descrittiva — non entra nei calcoli */
+  marca: string | null;
   unita_acquisto: UnitaAcquisto;
   prezzo_acquisto_cent: number;
   unita_uso: UnitaUso;

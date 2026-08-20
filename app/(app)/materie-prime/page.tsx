@@ -50,7 +50,12 @@ export default async function PaginaMateriePrime() {
                       {mp.nome}
                     </Link>
                   </td>
-                  <td className={classiTd}>{mp.categoria}</td>
+                  <td className={classiTd}>
+                    {mp.categoria}
+                    {mp.marca ? (
+                      <p className="text-xs text-stone-400">{mp.marca}</p>
+                    ) : null}
+                  </td>
                   <td className={classiTd}>
                     {formattaEuro(mp.prezzo_acquisto_cent)}/{mp.unita_acquisto}
                   </td>

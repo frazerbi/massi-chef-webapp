@@ -11,6 +11,8 @@ import {
 export interface InputMateriaPrima {
   nome: string;
   categoria: string;
+  /** FEATURE-009: marca del prodotto (opzionale, descrittiva) */
+  marca?: string | null;
   unita_acquisto: UnitaAcquisto;
   prezzo_acquisto_cent: number;
   unita_uso: UnitaUso;

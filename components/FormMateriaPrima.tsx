@@ -35,6 +35,9 @@ export default function FormMateriaPrima({
           )}
         </datalist>
       </Etichetta>
+      <Etichetta testo="Marca (opzionale, es. Mutti)">
+        <input name="marca" defaultValue={mp?.marca ?? ""} className={classiInput} />
+      </Etichetta>
       <Etichetta testo="Unità (acquisto → uso)">
         <select
           name="unita"

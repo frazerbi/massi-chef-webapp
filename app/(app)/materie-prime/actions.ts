@@ -25,6 +25,7 @@ function leggiForm(formData: FormData): InputMateriaPrima {
   return {
     nome: parseTesto(formData.get("nome"), "nome"),
     categoria: parseTesto(formData.get("categoria"), "categoria"),
+    marca: parseTestoOpzionale(formData.get("marca")),
     unita_acquisto: coppia.acquisto,
     unita_uso: coppia.uso,
     prezzo_acquisto_cent: parseEuroCent(formData.get("prezzo"), "prezzo"),
