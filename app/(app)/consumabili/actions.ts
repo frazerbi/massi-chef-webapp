@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import {
+  aggiornaConsumabile,
   creaConsumabile,
   eliminaConsumabile,
   type InputConsumabile,
@@ -16,14 +18,14 @@ const COPPIE_UNITA: Record<string, { acquisto: UnitaAcquisto; uso: UnitaUso }> =
   conf: { acquisto: "conf", uso: "pz" },
 };
 
-export async function azioneCreaConsumabile(formData: FormData): Promise<void> {
+function leggiForm(formData: FormData): InputConsumabile {
   const coppia = COPPIE_UNITA[parseTesto(formData.get("unita"), "unità")];
   if (!coppia) throw new Error("Unità di misura non ammessa");
   const tipo = parseTesto(formData.get("tipo_consumabile"), "tipo");
   if (tipo !== "apparecchiatura" && tipo !== "consumabile") {
     throw new Error("Tipo consumabile non ammesso");
   }
-  const input: InputConsumabile = {
+  return {
     nome: parseTesto(formData.get("nome"), "nome"),
     categoria: parseTesto(formData.get("categoria"), "categoria"),
     tipo_consumabile: tipo as TipoConsumabile,
@@ -34,8 +36,18 @@ export async function azioneCreaConsumabile(formData: FormData): Promise<void> {
     fornitore_preferito: parseTestoOpzionale(formData.get("fornitore")),
     note: parseTestoOpzionale(formData.get("note")),
   };
-  await creaConsumabile(input);
+}
+
+export async function azioneCreaConsumabile(formData: FormData): Promise<void> {
+  await creaConsumabile(leggiForm(formData));
   revalidatePath("/consumabili");
+}
+
+export async function azioneAggiornaConsumabile(formData: FormData): Promise<void> {
+  const id = parseTesto(formData.get("id"), "id");
+  await aggiornaConsumabile(id, leggiForm(formData));
+  revalidatePath("/consumabili");
+  redirect("/consumabili");
 }
 
 export async function azioneEliminaConsumabile(formData: FormData): Promise<void> {

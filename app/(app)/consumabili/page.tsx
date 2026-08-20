@@ -1,10 +1,9 @@
+import Link from "next/link";
+import FormConsumabile from "@/components/FormConsumabile";
 import {
-  classiBottone,
   classiBottoneSecondario,
-  classiInput,
   classiTd,
   classiTh,
-  Etichetta,
   Riquadro,
   TitoloPagina,
 } from "@/components/ui";
@@ -37,7 +36,11 @@ export default async function PaginaConsumabili() {
             <tbody className="divide-y divide-stone-100">
               {consumabili.map((c) => (
                 <tr key={c.id}>
-                  <td className={`${classiTd} font-medium`}>{c.nome}</td>
+                  <td className={classiTd}>
+                    <Link href={`/consumabili/${c.id}`} className="font-medium hover:underline">
+                      {c.nome}
+                    </Link>
+                  </td>
                   <td className={classiTd}>
                     {c.tipo_consumabile === "apparecchiatura"
                       ? "Apparecchio"
@@ -72,49 +75,7 @@ export default async function PaginaConsumabili() {
 
       <div className="mt-6">
         <Riquadro titolo="Nuovo consumabile">
-          <form action={azioneCreaConsumabile} className="grid gap-4 sm:grid-cols-2">
-            <Etichetta testo="Nome">
-              <input name="nome" required className={classiInput} />
-            </Etichetta>
-            <Etichetta testo="Tipo (gruppo nel preventivo)">
-              <select
-                name="tipo_consumabile"
-                defaultValue="consumabile"
-                className={classiInput}
-              >
-                <option value="consumabile">Consumabili cucina</option>
-                <option value="apparecchiatura">Consumabili apparecchio</option>
-              </select>
-            </Etichetta>
-            <Etichetta testo="Categoria">
-              <input name="categoria" required defaultValue="generico" className={classiInput} />
-            </Etichetta>
-            <Etichetta testo="Unità (acquisto → uso)">
-              <select name="unita" defaultValue="conf" className={classiInput}>
-                <option value="kg">kg → g</option>
-                <option value="l">l → ml</option>
-                <option value="pz">pz → pz</option>
-                <option value="conf">conf → pz</option>
-              </select>
-            </Etichetta>
-            <Etichetta testo="Prezzo di acquisto (€)">
-              <input name="prezzo" required inputMode="decimal" className={classiInput} />
-            </Etichetta>
-            <Etichetta testo="Fattore di conversione">
-              <input name="fattore" required inputMode="decimal" defaultValue="1" className={classiInput} />
-            </Etichetta>
-            <Etichetta testo="Fornitore (opzionale)">
-              <input name="fornitore" className={classiInput} />
-            </Etichetta>
-            <Etichetta testo="Note">
-              <input name="note" className={classiInput} />
-            </Etichetta>
-            <div className="sm:col-span-2">
-              <button type="submit" className={classiBottone}>
-                Aggiungi consumabile
-              </button>
-            </div>
-          </form>
+          <FormConsumabile azione={azioneCreaConsumabile} />
         </Riquadro>
       </div>
     </>

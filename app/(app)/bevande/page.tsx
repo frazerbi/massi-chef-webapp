@@ -1,11 +1,9 @@
 import Link from "next/link";
+import FormBevanda from "@/components/FormBevanda";
 import {
-  classiBottone,
   classiBottoneSecondario,
-  classiInput,
   classiTd,
   classiTh,
-  Etichetta,
   Riquadro,
   TitoloPagina,
 } from "@/components/ui";
@@ -44,7 +42,11 @@ export default async function PaginaBevande() {
             <tbody className="divide-y divide-stone-100">
               {bevande.map((b) => (
                 <tr key={b.id}>
-                  <td className={`${classiTd} font-medium`}>{b.nome}</td>
+                  <td className={classiTd}>
+                    <Link href={`/bevande/${b.id}`} className="font-medium hover:underline">
+                      {b.nome}
+                    </Link>
+                  </td>
                   <td className={classiTd}>{ETICHETTE_CATEGORIA_BEVANDA[b.categoria]}</td>
                   <td className={classiTd}>{b.formato_confezione ?? "—"}</td>
                   <td className={classiTd}>
@@ -76,46 +78,7 @@ export default async function PaginaBevande() {
 
       <div className="mt-6">
         <Riquadro titolo="Nuova bevanda">
-          <form action={azioneCreaBevanda} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Etichetta testo="Nome (es. Vermentino, Acqua naturale 1 l)">
-              <input name="nome" required className={classiInput} />
-            </Etichetta>
-            <Etichetta testo="Categoria">
-              <select name="categoria" className={classiInput}>
-                {Object.entries(ETICHETTE_CATEGORIA_BEVANDA).map(([valore, etichetta]) => (
-                  <option key={valore} value={valore}>
-                    {etichetta}
-                  </option>
-                ))}
-              </select>
-            </Etichetta>
-            <Etichetta testo="Formato confezione (es. bottiglia 0,75 l)">
-              <input name="formato" className={classiInput} />
-            </Etichetta>
-            <Etichetta testo="Capacità della singola unità">
-              <input name="capacita" required inputMode="decimal" defaultValue="750" className={classiInput} />
-            </Etichetta>
-            <Etichetta testo="Unità di misura (ml per liquidi, pz per caffè)">
-              <select name="unita" className={classiInput}>
-                <option value="ml">ml</option>
-                <option value="pz">pz</option>
-              </select>
-            </Etichetta>
-            <Etichetta testo="Unità per collo (es. cartone da 6)">
-              <input name="unita_per_collo" required inputMode="numeric" defaultValue="6" className={classiInput} />
-            </Etichetta>
-            <Etichetta testo="Prezzo per unità (€)">
-              <input name="prezzo" required inputMode="decimal" className={classiInput} />
-            </Etichetta>
-            <Etichetta testo="Note">
-              <input name="note" className={classiInput} />
-            </Etichetta>
-            <div className="flex items-end">
-              <button type="submit" className={classiBottone}>
-                Aggiungi bevanda
-              </button>
-            </div>
-          </form>
+          <FormBevanda azione={azioneCreaBevanda} />
         </Riquadro>
       </div>
     </>

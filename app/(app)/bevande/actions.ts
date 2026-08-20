@@ -1,12 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { creaBevanda, eliminaBevanda, type InputBevanda } from "@/lib/db/bevande";
+import { redirect } from "next/navigation";
+import {
+  aggiornaBevanda,
+  creaBevanda,
+  eliminaBevanda,
+  type InputBevanda,
+} from "@/lib/db/bevande";
 import type { CategoriaBevanda, UnitaBevanda } from "@/lib/db/types";
 import { parseEuroCent, parseNumero, parseTesto, parseTestoOpzionale } from "@/lib/form";
 
-export async function azioneCreaBevanda(formData: FormData): Promise<void> {
-  const input: InputBevanda = {
+function leggiForm(formData: FormData): InputBevanda {
+  return {
     nome: parseTesto(formData.get("nome"), "nome"),
     categoria: parseTesto(formData.get("categoria"), "categoria") as CategoriaBevanda,
     formato_confezione: parseTestoOpzionale(formData.get("formato")),
@@ -17,8 +23,18 @@ export async function azioneCreaBevanda(formData: FormData): Promise<void> {
     alcolica: false, // derivata dalla categoria in /lib/db/bevande
     note: parseTestoOpzionale(formData.get("note")),
   };
-  await creaBevanda(input);
+}
+
+export async function azioneCreaBevanda(formData: FormData): Promise<void> {
+  await creaBevanda(leggiForm(formData));
   revalidatePath("/bevande");
+}
+
+export async function azioneAggiornaBevanda(formData: FormData): Promise<void> {
+  const id = parseTesto(formData.get("id"), "id");
+  await aggiornaBevanda(id, leggiForm(formData));
+  revalidatePath("/bevande");
+  redirect("/bevande");
 }
 
 export async function azioneEliminaBevanda(formData: FormData): Promise<void> {

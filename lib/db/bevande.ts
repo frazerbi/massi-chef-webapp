@@ -44,6 +44,13 @@ export async function elencoBevande(): Promise<Bevanda[]> {
   return (data ?? []) as Bevanda[];
 }
 
+export async function bevandaPerId(id: string): Promise<Bevanda> {
+  const supabase = await creaClientServer();
+  const { data, error } = await supabase.from("bevanda").select("*").eq("id", id).single();
+  if (error) throw new Error(`Bevanda non trovata: ${error.message}`);
+  return data as Bevanda;
+}
+
 export async function creaBevanda(input: InputBevanda): Promise<string> {
   const supabase = await creaClientServer();
   const { data, error } = await supabase
