@@ -12,12 +12,14 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import { formattaEuro } from "@/lib/calc/money";
+import { raggruppaRighePreventivo } from "@/lib/calc/raggruppamentoPreventivo";
 import type { CalcoloPreventivo } from "@/lib/db/preventivi";
 import {
   ETICHETTE_CATEGORIA_BEVANDA,
   type Consumabile,
   type MateriaPrima,
   type PreventivoRiga,
+  type Ricetta,
 } from "@/lib/db/types";
 
 const stili = StyleSheet.create({
@@ -41,6 +43,13 @@ const stili = StyleSheet.create({
   },
   colDescrizione: { flex: 3 },
   colNumero: { flex: 1, textAlign: "right" },
+  intestazioneGruppo: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    marginTop: 8,
+    marginBottom: 2,
+    color: "#44403c",
+  },
   totale: { fontSize: 13, fontFamily: "Helvetica-Bold", textAlign: "right", marginTop: 8 },
   nota: { marginTop: 4, color: "#57534e" },
 });
@@ -98,14 +107,40 @@ function unitaRiga(
   return "";
 }
 
+/** CL-1: dati minimi per il raggruppamento, più la riga originale da stampare.
+ * Nessun subtotale per gruppo (decisione del 20/08/2026): le categorie sono
+ * solo intestazioni, il totale resta uno solo in fondo. */
+function descrittoreRiga(
+  riga: PreventivoRiga,
+  ricettePerId: Map<string, Ricetta>,
+  consumabiliPerId: Map<string, Consumabile>,
+) {
+  return {
+    riga,
+    tipoRiga: riga.tipo_riga,
+    categoriaPortata: riga.ricetta_id
+      ? ricettePerId.get(riga.ricetta_id)?.categoria_portata ?? null
+      : null,
+    tipoConsumabile: riga.consumabile_id
+      ? consumabiliPerId.get(riga.consumabile_id)?.tipo_consumabile ?? null
+      : null,
+  };
+}
+
 function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
-  const { dati, beveraggio, totali, quantitaEffettivaRighe, materiePrime, consumabili } = calcolo;
+  const { dati, beveraggio, totali, quantitaEffettivaRighe, materiePrime, consumabili, ricette } =
+    calcolo;
   const { preventivo, cliente, righe, beveraggio: configBev } = dati;
   const ospitiTotali =
     preventivo.numero_ospiti_adulti + preventivo.numero_ospiti_bambini;
   const prezzoFinaleCent = preventivo.prezzo_totale_cent ?? totali.prezzoTotaleCent;
   const materiePrimePerId = new Map(materiePrime.map((mp) => [mp.id, mp]));
   const consumabiliPerId = new Map(consumabili.map((c) => [c.id, c]));
+  const ricettePerId = new Map(ricette.map((r) => [r.id, r]));
+  // CL-1: solo riordino di presentazione — nessun costo e nessun prezzo cambia
+  const gruppi = raggruppaRighePreventivo(
+    righe.map((riga) => descrittoreRiga(riga, ricettePerId, consumabiliPerId)),
+  );
 
   return (
     <Document>
@@ -137,14 +172,21 @@ function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
             </Text>
             <Text style={[stili.colNumero, { fontFamily: "Helvetica-Bold" }]}>Totale</Text>
           </View>
-          {righe.map((riga) => (
-            <RigaPrezzo
-              key={riga.id}
-              descrizione={riga.descrizione}
-              quantita={quantitaEffettivaRighe.get(riga.id) ?? Number(riga.quantita)}
-              unita={unitaRiga(riga, materiePrimePerId, consumabiliPerId)}
-              prezzoUnitarioCent={riga.prezzo_unitario_cent}
-            />
+          {gruppi.map((gruppo) => (
+            <View key={gruppo.chiave}>
+              <Text style={stili.intestazioneGruppo} minPresenceAhead={40}>
+                {gruppo.etichetta}
+              </Text>
+              {gruppo.righe.map(({ riga }) => (
+                <RigaPrezzo
+                  key={riga.id}
+                  descrizione={riga.descrizione}
+                  quantita={quantitaEffettivaRighe.get(riga.id) ?? Number(riga.quantita)}
+                  unita={unitaRiga(riga, materiePrimePerId, consumabiliPerId)}
+                  prezzoUnitarioCent={riga.prezzo_unitario_cent}
+                />
+              ))}
+            </View>
           ))}
         </View>
 

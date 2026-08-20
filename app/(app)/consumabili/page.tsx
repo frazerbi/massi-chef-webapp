@@ -27,6 +27,7 @@ export default async function PaginaConsumabili() {
             <thead className="border-b border-stone-200">
               <tr>
                 <th className={classiTh}>Nome</th>
+                <th className={classiTh}>Tipo</th>
                 <th className={classiTh}>Categoria</th>
                 <th className={classiTh}>Prezzo</th>
                 <th className={classiTh}>Fornitore</th>
@@ -37,6 +38,11 @@ export default async function PaginaConsumabili() {
               {consumabili.map((c) => (
                 <tr key={c.id}>
                   <td className={`${classiTd} font-medium`}>{c.nome}</td>
+                  <td className={classiTd}>
+                    {c.tipo_consumabile === "apparecchiatura"
+                      ? "Apparecchiatura"
+                      : "Consumabile"}
+                  </td>
                   <td className={classiTd}>{c.categoria}</td>
                   <td className={classiTd}>
                     {formattaEuro(c.prezzo_acquisto_cent)}/{c.unita_acquisto}
@@ -54,7 +60,7 @@ export default async function PaginaConsumabili() {
               ))}
               {consumabili.length === 0 && (
                 <tr>
-                  <td className={`${classiTd} text-stone-500`} colSpan={5}>
+                  <td className={`${classiTd} text-stone-500`} colSpan={6}>
                     Nessun consumabile registrato.
                   </td>
                 </tr>
@@ -69,6 +75,16 @@ export default async function PaginaConsumabili() {
           <form action={azioneCreaConsumabile} className="grid gap-4 sm:grid-cols-2">
             <Etichetta testo="Nome">
               <input name="nome" required className={classiInput} />
+            </Etichetta>
+            <Etichetta testo="Tipo (gruppo nel preventivo)">
+              <select
+                name="tipo_consumabile"
+                defaultValue="consumabile"
+                className={classiInput}
+              >
+                <option value="consumabile">Consumabile</option>
+                <option value="apparecchiatura">Apparecchiatura</option>
+              </select>
             </Etichetta>
             <Etichetta testo="Categoria">
               <input name="categoria" required defaultValue="generico" className={classiInput} />

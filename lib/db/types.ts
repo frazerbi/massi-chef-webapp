@@ -34,6 +34,9 @@ export type CategoriaBevanda =
   | "caffe"
   | "amari_distillati";
 export type TipoRigaPreventivo = "ricetta" | "materia_prima" | "consumabile" | "extra";
+/** CL-1: distingue il materiale di apparecchiatura dai consumabili veri e
+ * propri, che nel preventivo compaiono in due gruppi separati (migrazione 0008) */
+export type TipoConsumabile = "apparecchiatura" | "consumabile";
 export type CategoriaRigaExtra =
   | "personale"
   | "trasferta"
@@ -120,6 +123,8 @@ export interface MateriaPrima extends RigaBase {
 export interface Consumabile extends RigaBase {
   nome: string;
   categoria: string;
+  /** CL-1: gruppo di presentazione nel preventivo (migrazione 0008) */
+  tipo_consumabile: TipoConsumabile;
   unita_acquisto: UnitaAcquisto;
   prezzo_acquisto_cent: number;
   unita_uso: UnitaUso;

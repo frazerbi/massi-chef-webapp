@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import {
   classiBottone,
@@ -10,6 +11,7 @@ import {
   TitoloPagina,
 } from "@/components/ui";
 import { formattaEuro } from "@/lib/calc/money";
+import { raggruppaRighePreventivo } from "@/lib/calc/raggruppamentoPreventivo";
 import { elencoConsumabili } from "@/lib/db/consumabili";
 import { elencoMateriePrime } from "@/lib/db/materiePrime";
 import { calcolaPreventivo } from "@/lib/db/preventivi";
@@ -63,9 +65,11 @@ export default async function PaginaPreventivo({
     bevande,
     materiePrime,
     consumabili,
+    ricette: ricetteRiferite,
   } = calcolo;
   const materiePrimePerId = new Map(materiePrime.map((mp) => [mp.id, mp]));
   const consumabiliPerId = new Map(consumabili.map((c) => [c.id, c]));
+  const ricettePerId = new Map(ricetteRiferite.map((r) => [r.id, r]));
   const {
     preventivo,
     cliente,
@@ -75,6 +79,20 @@ export default async function PaginaPreventivo({
     prodottiBeveraggio,
   } = dati;
   const eBozza = preventivo.stato === "bozza";
+  // CL-1: raggruppamento di sola presentazione (stessa funzione usata dal PDF):
+  // nessun costo e nessun prezzo viene ricalcolato
+  const gruppiRighe = raggruppaRighePreventivo(
+    righe.map((riga) => ({
+      riga,
+      tipoRiga: riga.tipo_riga,
+      categoriaPortata: riga.ricetta_id
+        ? ricettePerId.get(riga.ricetta_id)?.categoria_portata ?? null
+        : null,
+      tipoConsumabile: riga.consumabile_id
+        ? consumabiliPerId.get(riga.consumabile_id)?.tipo_consumabile ?? null
+        : null,
+    })),
+  );
   const ospitiTotali =
     preventivo.numero_ospiti_adulti + preventivo.numero_ospiti_bambini;
 
@@ -213,131 +231,143 @@ export default async function PaginaPreventivo({
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {righe.map((riga) => {
-                  const costoUnitario = costiRigheCent.get(riga.id) ?? null;
-                  const quantitaEffettiva =
-                    quantitaEffettivaRighe.get(riga.id) ?? Number(riga.quantita);
-                  const materiaPrima = riga.materia_prima_id
-                    ? materiePrimePerId.get(riga.materia_prima_id)
-                    : undefined;
-                  const consumabile = riga.consumabile_id
-                    ? consumabiliPerId.get(riga.consumabile_id)
-                    : undefined;
-                  return (
-                    <tr key={riga.id}>
-                      <td className={`${classiTd} font-medium`}>
-                        {riga.descrizione}
-                        {riga.tipo_riga === "extra" && (
-                          <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs">
-                            {riga.categoria_extra}
-                          </span>
-                        )}
-                        {riga.tipo_riga === "materia_prima" && (
-                          <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs">
-                            materia prima
-                          </span>
-                        )}
-                        {riga.tipo_riga === "consumabile" && (
-                          <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs">
-                            consumabile
-                          </span>
-                        )}
-                      </td>
-                      <td className={classiTd}>
-                        {riga.tipo_riga === "materia_prima" ? (
-                          <>
-                            {Math.round(Number(riga.quantita) * 1000) / 1000}{" "}
-                            {materiaPrima?.unita_uso ?? ""} a persona
-                            <p className="text-xs text-stone-400">
-                              tot. evento: {Math.round(quantitaEffettiva * 1000) / 1000}{" "}
-                              {materiaPrima?.unita_uso ?? ""} ({ospitiTotali} ospiti, sfrido{" "}
-                              {Number(preventivo.sfrido_pct)}%)
-                            </p>
-                          </>
-                        ) : riga.tipo_riga === "consumabile" ? (
-                          <>
-                            {Math.round(Number(riga.quantita) * 1000) / 1000}{" "}
-                            {consumabile?.unita_uso ?? ""} a persona
-                            <p className="text-xs text-stone-400">
-                              tot. evento: {Math.round(quantitaEffettiva * 1000) / 1000}{" "}
-                              {consumabile?.unita_uso ?? ""} ({ospitiTotali} ospiti, senza sfrido)
-                            </p>
-                          </>
-                        ) : riga.tipo_riga === "ricetta" ? (
-                          `${Math.round(Number(riga.quantita) * 1000) / 1000} porzioni`
-                        ) : (
-                          Math.round(Number(riga.quantita) * 1000) / 1000
-                        )}
-                      </td>
-                      <td className={classiTd}>
-                        {costoUnitario != null
-                          ? formattaEuro(Math.round(costoUnitario))
-                          : "—"}
-                      </td>
-                      <td className={classiTd}>
-                        {costoUnitario != null
-                          ? formattaEuro(Math.round(costoUnitario * quantitaEffettiva))
-                          : "—"}
-                      </td>
-                      <td className={classiTd}>
-                        {eBozza ? (
-                          <form
-                            action={azioneAggiornaRigaPrezzo}
-                            className="flex items-center gap-2"
-                          >
-                            <input type="hidden" name="preventivo_id" value={preventivo.id} />
-                            <input type="hidden" name="riga_id" value={riga.id} />
-                            {riga.tipo_riga === "materia_prima" ||
-                            riga.tipo_riga === "consumabile" ? (
-                              <input
-                                name="quantita"
-                                inputMode="decimal"
-                                defaultValue={String(riga.quantita)}
-                                title="Quantità a persona"
-                                className="w-20 rounded-md border border-stone-300 px-2 py-1 text-sm"
-                              />
-                            ) : (
-                              <input
-                                type="hidden"
-                                name="quantita"
-                                value={String(riga.quantita)}
-                              />
-                            )}
-                            <input
-                              name="prezzo"
-                              inputMode="decimal"
-                              defaultValue={euroInput(riga.prezzo_unitario_cent)}
-                              placeholder={
-                                costoUnitario != null
-                                  ? `sugg. ${(Math.round(costoUnitario / (1 - Number(preventivo.margine_target_pct) / 100)) / 100).toFixed(2).replace(".", ",")}`
-                                  : ""
-                              }
-                              className="w-28 rounded-md border border-stone-300 px-2 py-1 text-sm"
-                            />
-                            <button type="submit" className={classiBottoneSecondario}>
-                              OK
-                            </button>
-                          </form>
-                        ) : riga.prezzo_unitario_cent != null ? (
-                          formattaEuro(riga.prezzo_unitario_cent)
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className={classiTd}>
-                        {eBozza && (
-                          <form action={azioneRimuoviRiga}>
-                            <input type="hidden" name="preventivo_id" value={preventivo.id} />
-                            <input type="hidden" name="riga_id" value={riga.id} />
-                            <button type="submit" className={classiBottoneSecondario}>
-                              Rimuovi
-                            </button>
-                          </form>
-                        )}
+                {gruppiRighe.map((gruppo) => (
+                  <Fragment key={gruppo.chiave}>
+                    <tr className="bg-stone-50">
+                      <td
+                        className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-stone-500"
+                        colSpan={6}
+                      >
+                        {gruppo.etichetta}
                       </td>
                     </tr>
-                  );
-                })}
+                    {gruppo.righe.map(({ riga }) => {
+                      const costoUnitario = costiRigheCent.get(riga.id) ?? null;
+                      const quantitaEffettiva =
+                        quantitaEffettivaRighe.get(riga.id) ?? Number(riga.quantita);
+                      const materiaPrima = riga.materia_prima_id
+                        ? materiePrimePerId.get(riga.materia_prima_id)
+                        : undefined;
+                      const consumabile = riga.consumabile_id
+                        ? consumabiliPerId.get(riga.consumabile_id)
+                        : undefined;
+                      return (
+                        <tr key={riga.id}>
+                          <td className={`${classiTd} font-medium`}>
+                            {riga.descrizione}
+                            {riga.tipo_riga === "extra" && (
+                              <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs">
+                                {riga.categoria_extra}
+                              </span>
+                            )}
+                            {riga.tipo_riga === "materia_prima" && (
+                              <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs">
+                                materia prima
+                              </span>
+                            )}
+                            {riga.tipo_riga === "consumabile" && (
+                              <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs">
+                                consumabile
+                              </span>
+                            )}
+                          </td>
+                          <td className={classiTd}>
+                            {riga.tipo_riga === "materia_prima" ? (
+                              <>
+                                {Math.round(Number(riga.quantita) * 1000) / 1000}{" "}
+                                {materiaPrima?.unita_uso ?? ""} a persona
+                                <p className="text-xs text-stone-400">
+                                  tot. evento: {Math.round(quantitaEffettiva * 1000) / 1000}{" "}
+                                  {materiaPrima?.unita_uso ?? ""} ({ospitiTotali} ospiti, sfrido{" "}
+                                  {Number(preventivo.sfrido_pct)}%)
+                                </p>
+                              </>
+                            ) : riga.tipo_riga === "consumabile" ? (
+                              <>
+                                {Math.round(Number(riga.quantita) * 1000) / 1000}{" "}
+                                {consumabile?.unita_uso ?? ""} a persona
+                                <p className="text-xs text-stone-400">
+                                  tot. evento: {Math.round(quantitaEffettiva * 1000) / 1000}{" "}
+                                  {consumabile?.unita_uso ?? ""} ({ospitiTotali} ospiti, senza sfrido)
+                                </p>
+                              </>
+                            ) : riga.tipo_riga === "ricetta" ? (
+                              `${Math.round(Number(riga.quantita) * 1000) / 1000} porzioni`
+                            ) : (
+                              Math.round(Number(riga.quantita) * 1000) / 1000
+                            )}
+                          </td>
+                          <td className={classiTd}>
+                            {costoUnitario != null
+                              ? formattaEuro(Math.round(costoUnitario))
+                              : "—"}
+                          </td>
+                          <td className={classiTd}>
+                            {costoUnitario != null
+                              ? formattaEuro(Math.round(costoUnitario * quantitaEffettiva))
+                              : "—"}
+                          </td>
+                          <td className={classiTd}>
+                            {eBozza ? (
+                              <form
+                                action={azioneAggiornaRigaPrezzo}
+                                className="flex items-center gap-2"
+                              >
+                                <input type="hidden" name="preventivo_id" value={preventivo.id} />
+                                <input type="hidden" name="riga_id" value={riga.id} />
+                                {riga.tipo_riga === "materia_prima" ||
+                                riga.tipo_riga === "consumabile" ? (
+                                  <input
+                                    name="quantita"
+                                    inputMode="decimal"
+                                    defaultValue={String(riga.quantita)}
+                                    title="Quantità a persona"
+                                    className="w-20 rounded-md border border-stone-300 px-2 py-1 text-sm"
+                                  />
+                                ) : (
+                                  <input
+                                    type="hidden"
+                                    name="quantita"
+                                    value={String(riga.quantita)}
+                                  />
+                                )}
+                                <input
+                                  name="prezzo"
+                                  inputMode="decimal"
+                                  defaultValue={euroInput(riga.prezzo_unitario_cent)}
+                                  placeholder={
+                                    costoUnitario != null
+                                      ? `sugg. ${(Math.round(costoUnitario / (1 - Number(preventivo.margine_target_pct) / 100)) / 100).toFixed(2).replace(".", ",")}`
+                                      : ""
+                                  }
+                                  className="w-28 rounded-md border border-stone-300 px-2 py-1 text-sm"
+                                />
+                                <button type="submit" className={classiBottoneSecondario}>
+                                  OK
+                                </button>
+                              </form>
+                            ) : riga.prezzo_unitario_cent != null ? (
+                              formattaEuro(riga.prezzo_unitario_cent)
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                          <td className={classiTd}>
+                            {eBozza && (
+                              <form action={azioneRimuoviRiga}>
+                                <input type="hidden" name="preventivo_id" value={preventivo.id} />
+                                <input type="hidden" name="riga_id" value={riga.id} />
+                                <button type="submit" className={classiBottoneSecondario}>
+                                  Rimuovi
+                                </button>
+                              </form>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </Fragment>
+                ))}
                 {righe.length === 0 && (
                   <tr>
                     <td className={`${classiTd} text-stone-500`} colSpan={6}>

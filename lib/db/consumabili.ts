@@ -1,5 +1,5 @@
 import { creaClientServer } from "./server";
-import type { Consumabile, UnitaAcquisto, UnitaUso } from "./types";
+import type { Consumabile, TipoConsumabile, UnitaAcquisto, UnitaUso } from "./types";
 import {
   validaCentesimi,
   validaConversioneUnita,
@@ -10,6 +10,8 @@ import {
 export interface InputConsumabile {
   nome: string;
   categoria: string;
+  /** CL-1: apparecchiatura o consumabile — gruppo di presentazione nel preventivo */
+  tipo_consumabile: TipoConsumabile;
   unita_acquisto: UnitaAcquisto;
   prezzo_acquisto_cent: number;
   unita_uso: UnitaUso;
@@ -23,6 +25,9 @@ function validaInput(input: InputConsumabile) {
   validaCentesimi(input.prezzo_acquisto_cent, "prezzo di acquisto");
   validaQuantita(input.fattore_conversione, "fattore di conversione");
   validaConversioneUnita(input.unita_acquisto, input.unita_uso);
+  if (input.tipo_consumabile !== "apparecchiatura" && input.tipo_consumabile !== "consumabile") {
+    throw new Error(`Tipo consumabile non ammesso: ${input.tipo_consumabile}`);
+  }
   return { ...input, nome };
 }
 

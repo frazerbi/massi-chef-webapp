@@ -1,0 +1,913 @@
+<title>Chef Manager — Roadmap bug e feature</title>
+<style>
+  :root {
+    --bg: #f6f3ee;
+    --surface: #ffffff;
+    --ink: #262220;
+    --ink-soft: #5c5650;
+    --line: #e3ddd3;
+    --accent: #1f5f5b;
+    --accent-soft: #e4efed;
+    --accent-ink: #123c39;
+    --bug: #b23b2e;
+    --bug-soft: #fbe9e6;
+    --decision: #9a6a12;
+    --decision-soft: #f8edd9;
+    --done: #2f7a4d;
+    --done-soft: #e6f2ea;
+    --mono-bg: #f0ece4;
+  }
+  :root[data-theme="dark"] {
+    --bg: #17201f;
+    --surface: #1d2726;
+    --ink: #ece7df;
+    --ink-soft: #a9a49b;
+    --line: #303c3a;
+    --accent: #5fb8ae;
+    --accent-soft: #223635;
+    --accent-ink: #a9e0d7;
+    --bug: #e28579;
+    --bug-soft: #34211f;
+    --decision: #e0b15f;
+    --decision-soft: #362a15;
+    --done: #7fcc9d;
+    --done-soft: #1f322a;
+    --mono-bg: #202b29;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17201f;
+      --surface: #1d2726;
+      --ink: #ece7df;
+      --ink-soft: #a9a49b;
+      --line: #303c3a;
+      --accent: #5fb8ae;
+      --accent-soft: #223635;
+      --accent-ink: #a9e0d7;
+      --bug: #e28579;
+      --bug-soft: #34211f;
+      --decision: #e0b15f;
+      --decision-soft: #362a15;
+      --done: #7fcc9d;
+      --done-soft: #1f322a;
+      --mono-bg: #202b29;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  body {
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Times New Roman", serif;
+    text-wrap: balance;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 3.5rem 1.5rem 6rem;
+  }
+  header.doc {
+    margin-bottom: 2.75rem;
+  }
+  .kicker {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin: 0 0 0.9rem;
+  }
+  h1.title {
+    font-size: 2.15rem;
+    margin: 0 0 0.6rem;
+    letter-spacing: -0.01em;
+  }
+  p.lede {
+    font-size: 1.05rem;
+    color: var(--ink-soft);
+    margin: 0 0 1.6rem;
+    max-width: 62ch;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.8rem;
+    padding: 0.9rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+  }
+  .legend .item { display: flex; align-items: center; gap: 0.4rem; }
+  .dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; flex: none; }
+  .dot.bug { background: var(--bug); }
+  .dot.decision { background: var(--decision); }
+  .dot.done { background: var(--done); }
+  .dot.accent { background: var(--accent); }
+
+  section.group {
+    margin: 2.6rem 0;
+  }
+  h2.group-title {
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 0.6rem;
+    margin: 0 0 1.4rem;
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    font-weight: 700;
+  }
+
+  article.card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 1.4rem 1.5rem 1.5rem;
+    margin-bottom: 1.1rem;
+  }
+  article.card.bug { border-left-color: var(--bug); }
+  article.card.done { border-left-color: var(--done); }
+
+  .card-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.3rem;
+  }
+  .card-id {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    letter-spacing: 0.02em;
+  }
+  h3.card-title {
+    font-size: 1.15rem;
+    margin: 0.1rem 0 0.7rem;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.55rem;
+    border-radius: 100px;
+  }
+  .badge.bug { background: var(--bug-soft); color: var(--bug); }
+  .badge.decision { background: var(--decision-soft); color: var(--decision); }
+  .badge.done { background: var(--done-soft); color: var(--done); }
+  .badge.dep { background: var(--accent-soft); color: var(--accent-ink); }
+
+  .card p { margin: 0.55rem 0; color: var(--ink); }
+  .card p.soft { color: var(--ink-soft); font-size: 0.95rem; }
+  .card h4 {
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    margin: 1.1rem 0 0.4rem;
+    font-weight: 700;
+  }
+  .card ol, .card ul { margin: 0.4rem 0; padding-left: 1.3rem; }
+  .card li { margin: 0.3rem 0; }
+  .card ul.plain { list-style: none; padding-left: 0; }
+  .card ul.plain li { padding-left: 1.1rem; position: relative; }
+  .card ul.plain li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  code, .file {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.86em;
+    background: var(--mono-bg);
+    padding: 0.1rem 0.35rem;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+  a.file, a.file:visited {
+    color: var(--accent-ink);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--accent);
+  }
+  a.file:hover { border-bottom-style: solid; }
+
+  .decision-box {
+    margin-top: 0.9rem;
+    padding: 0.85rem 1rem;
+    background: var(--decision-soft);
+    border-radius: 8px;
+    font-size: 0.94rem;
+  }
+  .decision-box strong { color: var(--decision); }
+
+  .options {
+    display: grid;
+    gap: 0.6rem;
+    margin-top: 0.6rem;
+  }
+  .option {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.92rem;
+  }
+  .option .tag {
+    font-weight: 700;
+    color: var(--accent);
+    margin-right: 0.35rem;
+  }
+
+  .priority {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.3rem 1.5rem;
+    margin-top: 2.6rem;
+  }
+  .priority ol { padding-left: 1.2rem; margin: 0.6rem 0 0; }
+  .priority li { margin: 0.5rem 0; }
+
+  .changelog {
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--done);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 1rem 1.3rem;
+    margin-bottom: 2rem;
+  }
+  .changelog h2 {
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    color: var(--ink-soft);
+    margin: 0 0 0.7rem;
+  }
+  .changelog ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
+  .changelog li { font-size: 0.92rem; }
+  .changelog time {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin-right: 0.5rem;
+  }
+
+  /* --- Checklist cliente: mappatura e citazioni --- */
+  .mappa {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 0.4rem 0.2rem;
+    margin-bottom: 1.4rem;
+    overflow-x: auto;
+  }
+  .mappa table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.9rem;
+  }
+  .mappa th, .mappa td {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  .mappa thead th {
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .mappa tbody tr:last-child td { border-bottom: none; }
+  .mappa td.num {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .mappa td.sched {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
+  .stato-nuovo { color: var(--decision); font-weight: 700; }
+  .stato-piano { color: var(--accent); font-weight: 700; }
+  .stato-parz  { color: var(--bug); font-weight: 700; }
+
+  blockquote.richiesta {
+    margin: 0 0 0.9rem;
+    padding: 0.6rem 0 0.6rem 0.9rem;
+    border-left: 2px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 0.94rem;
+    font-style: italic;
+  }
+  .badge.nuovo { background: var(--decision-soft); color: var(--decision); }
+  .warn {
+    margin-top: 0.9rem;
+    padding: 0.85rem 1rem;
+    background: var(--bug-soft);
+    border-radius: 8px;
+    font-size: 0.94rem;
+  }
+  .warn strong { color: var(--bug); }
+
+
+  /* --- Indice di complessità e requisiti di implementazione --- */
+  .cx {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.7rem;
+    margin: 0.9rem 0 0.2rem;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+  }
+  .cx-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .cx-dots { display: inline-flex; gap: 0.22rem; flex: none; }
+  .cx-dots i {
+    width: 0.62rem;
+    height: 0.62rem;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: transparent;
+    display: block;
+  }
+  .cx-dots i.on { background: var(--accent); border-color: var(--accent); }
+  .cx.lv4 .cx-dots i.on, .cx.lv5 .cx-dots i.on { background: var(--decision); border-color: var(--decision); }
+  .cx.lv5 { border-color: var(--decision); }
+  .cx-note { color: var(--ink); }
+  .cx-eff {
+    margin-left: auto;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    color: var(--ink-soft);
+  }
+
+  ul.serve { list-style: none; padding-left: 0; margin: 0.4rem 0; }
+  ul.serve li {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr;
+    gap: 0.2rem 0.7rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 0.93rem;
+  }
+  ul.serve li:last-child { border-bottom: none; }
+  ul.serve li > b {
+    font-family: -apple-system, "Segoe UI", Arial, sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding-top: 0.15rem;
+  }
+  ul.serve li.no > span { color: var(--ink-soft); }
+
+  .mappa td.cxcell { white-space: nowrap; }
+  .mappa td.cxcell .cx-dots { vertical-align: middle; }
+  .mappa td.eff {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    color: var(--ink-soft);
+  }
+
+  @media (max-width: 640px) {
+    ul.serve li { grid-template-columns: 1fr; }
+    .cx-eff { margin-left: 0; }
+  }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 2.2rem 1.1rem 4rem; }
+    h1.title { font-size: 1.7rem; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="doc">
+    <p class="kicker">Chef Manager — Roadmap tecnica vivente</p>
+    <h1 class="title">Bug e feature: diagnosi, decisioni e stato di avanzamento</h1>
+    <p class="lede">Documento unico che raccoglie le richieste del cliente, la loro analisi tecnica e lo stato di avanzamento. Ogni nuova richiesta si aggiunge qui — changelog in cima, checklist ricevute e schede sotto — invece di aprire un nuovo documento, così la cronologia resta in un unico posto.</p>
+    <div class="legend">
+      <span class="item"><span class="dot bug"></span> bug confermato / aperto</span>
+      <span class="item"><span class="dot decision"></span> decisione di dominio da te</span>
+      <span class="item"><span class="dot done"></span> risolto / già implementato</span>
+      <span class="item"><span class="dot accent"></span> dipende da moduli non ancora costruiti</span>
+    </div>
+  </header>
+
+  <div class="changelog">
+    <h2>Changelog</h2>
+    <ul>
+      <li><time>2026-08-20</time><strong>CL-1 implementata.</strong> Righe del preventivo raggruppate per categoria sia nella pagina sia nel PDF, con una sola funzione pura condivisa (<code>lib/calc/raggruppamentoPreventivo.ts</code>, testata in <code>tests/calc/</code>): ordine antipasti → primi → secondi → contorni → dessert → finger → altre portate → Apparecchiatura → Consumabili → Altri prodotti → Servizi e altre voci, gruppi vuoti non stampati, nessun subtotale, totale unico in fondo. Migrazione <code>0008_tipo_consumabile.sql</code> (enum <code>categoria_consumabile_tipo</code> + colonna <code>tipo_consumabile</code> su <code>consumabile</code>, default <code>consumabile</code>) creata, <strong>da applicare nel SQL Editor</strong>. Punto scoperto in analisi risolto: <code>calcolaPreventivo</code> ora espone anche le ricette, così la <code>categoria_portata</code> è disponibile a pagina e PDF. Nessun costo ricalcolato: puro riordino di presentazione.</li>
+      <li><time>2026-08-20</time><strong>Verifica dello stato reale del database prima di implementare CL-1/CL-3.</strong> Il documento dava le migrazioni <code>0006</code>/<code>0007</code> come non applicate: controllando <code>enum_range</code>, <code>information_schema.columns</code> e <code>pg_get_constraintdef</code> sono risultate <strong>entrambe già applicate e integre</strong>, con 8 righe <code>tipo_riga='consumabile'</code> in produzione tutte coerenti. Nessun dato da sanare, nessun vincolo mancante: la prossima migrazione è la <code>0008</code>. Confermato anche che <code>.env.local</code> punta al progetto di <strong>produzione</strong> e che non esiste un ambiente di staging — sviluppare in locale scrive sui dati veri.</li>
+      <li><time>2026-08-20</time><strong>CL-1 e CL-3 sbloccate:</strong> prese tutte le decisioni aperte. CL-1 — "Apparecchiatura" e "Consumabili" come gruppi distinti (richiede una colonna <code>tipo_consumabile</code>: la scheda passa da 0 a 1 migrazione, ●●○○○→●●●○○), materie prime dirette in "Altri prodotti", righe extra in "Servizi e altre voci" in coda, nessun subtotale sul PDF. CL-3 — scheda attrezzature <strong>completa con ammortamento</strong> anziché solo inventario (●●○○○→●●●●○, 3–4 giornate, uscita esplicita dall'ordine di fase §7).</li>
+      <li><time>2026-08-20</time>Aggiunto a ogni scheda della checklist un <strong>indice di complessità</strong> (1–5), una <strong>stima in giornate</strong> e il dettaglio di <strong>cosa serve per implementarla</strong>: migrazioni, file da toccare, decisioni bloccanti, dipendenze e test. Riportati anche in tabella e nell'ordine di priorità.</li>
+      <li><time>2026-08-20</time>Ricevuta una nuova checklist dal cliente (7 punti: 1–5, 11, 12). Analizzata voce per voce e integrata qui sotto come schede <code>CL-*</code>. Tre punti erano già tracciati in questo documento (FEATURE-004, 005, 003 e 007/008), quattro sono nuovi. Nessuna implementazione avviata: il punto 12 (profili beverage) è bloccato in attesa di quattro risposte commerciali.</li>
+      <li><time>2026-08-20</time>Il sorgente di questo documento è ora versionato nel repo in <code>docs/roadmap.html</code>: da qui in avanti si modifica quel file e si ripubblica sullo stesso URL, senza doverne rileggere il contenuto dall'artifact.</li>
+      <li><time>2026-08-02</time>FEATURE-018 implementata: consumabile inseribile direttamente in menu e preventivo (stesso pattern di FEATURE-017, ma <strong>senza</strong> sfrido e con il costo nel bucket "extra"). Migrazioni <code>0006_riga_consumabile_enum.sql</code> e <code>0007_riga_consumabile.sql</code> create e <strong>applicate su Supabase</strong> (verificato il 20/08/2026).</li>
+      <li><time>2026-08-02</time>PDF preventivo: quantità arrotondate a 3 decimali con l'unità di misura accanto (prima comparivano residui in virgola mobile senza unità); sezione beveraggio sempre in dettaglio, indipendentemente dal campo <code>esposizione</code>, che da ora non ha più effetto sul PDF.</li>
+      <li><time>2026-08-02</time>Documentata la limitazione UX sul beveraggio (aggiungere più prodotti nella stessa categoria richiede di abbassare a mano la quota % del primo): scritta nel README e nella nuova pagina guida <code>/bevande/guida</code>, <strong>non ancora corretta lato codice</strong>.</li>
+      <li><time>2026-08-01</time>FEATURE-017 implementata: materia prima inseribile direttamente in menu e preventivo, senza passare da una ricetta (frutta, olive, patatine). Migrazioni <code>0004_riga_materia_prima_enum.sql</code> e <code>0005_riga_materia_prima.sql</code> create e applicate su Supabase.</li>
+      <li><time>2026-08-01</time>FEATURE-016 implementata: valore "corretto" del beveraggio inseribile a mano per riga, col teorico che resta come suggerimento. Migrazione <code>0003_beveraggio_correzione_manuale.sql</code> applicata su Supabase.</li>
+      <li><time>2026-08-01</time>FEATURE-015 implementata: eliminazione preventivi ancora in bozza (DELETE fisico, non soft delete — vedi scheda).</li>
+      <li><time>2026-08-01</time>BUG-003 risolto: guardia in <code>impostaRigaBeveraggio</code> contro il disallineamento unità/bevanda che bloccava "Segna come inviato" su due preventivi in produzione (dati corretti via SQL Editor).</li>
+      <li><time>2026-07-28</time>BUG-001 e BUG-002 risolti (vedi schede sotto). Migrazione <code>0002_beveraggio_multi_prodotto.sql</code> creata e applicata su Supabase: fix attivo in produzione.</li>
+    </ul>
+  </div>
+
+  <section class="group">
+    <h2 class="group-title">Checklist cliente — 20 agosto 2026</h2>
+    <p class="soft" style="margin-top:-0.6rem;">Le sette voci ricevute, riportate integralmente (in corsivo la richiesta originale) con l'analisi di cosa esiste già, cosa manca e cosa va deciso prima di scrivere codice. Tre voci coincidono con schede già presenti più in basso: dove succede, la scheda vecchia resta la fonte tecnica e qui si annota solo lo scostamento rispetto alla nuova richiesta.</p>
+    <p class="soft" style="margin-top:-0.4rem;font-size:0.9rem;">L'<strong>indice di complessità</strong> va da ●○○○○ (solo presentazione, nessuna migrazione, nessuna decisione aperta) a ●●●●● (tocca il modello di dominio o contraddice un invariante, con decisioni commerciali da prendere prima). La <strong>stima</strong> è in giornate di lavoro effettivo, a decisioni già prese: non include il tempo di attesa delle risposte. Ogni scheda riporta poi in dettaglio <em>cosa serve per implementarla</em> — migrazioni, file da toccare, decisioni bloccanti, dipendenze, test.</p>
+
+    <div class="mappa">
+      <table>
+        <thead>
+          <tr><th>N.</th><th>Richiesta</th><th>Stato</th><th>Complessità</th><th>Stima</th><th>Scheda</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td>Preventivo per categorie</td><td><span class="stato-nuovo">implementata</span> — 20/08/2026</td><td class="cxcell"><span class="cx-dots" title="3 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></td><td class="eff">1–1,5 g</td><td class="sched">CL-1</td></tr>
+          <tr><td class="num">2</td><td>Codice interno + categorie materie prime</td><td><span class="stato-parz">parziale</span> — campo esiste, libero</td><td class="cxcell"><span class="cx-dots" title="3 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></td><td class="eff">2–3 g</td><td class="sched">CL-2 · FEATURE-007/008</td></tr>
+          <tr><td class="num">3</td><td>Lista attrezzi personali</td><td><span class="stato-piano">decisa</span> — completa, fuori fase</td><td class="cxcell"><span class="cx-dots" title="4 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></td><td class="eff">3–4 g</td><td class="sched">CL-3 · FEATURE-005</td></tr>
+          <tr><td class="num">4</td><td>Lista della spesa</td><td><span class="stato-piano">già pianificata</span> — fase 4</td><td class="cxcell"><span class="cx-dots" title="3 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span></td><td class="eff">2–3 g</td><td class="sched">CL-4 · FEATURE-004</td></tr>
+          <tr><td class="num">5</td><td>Attrezzature necessarie per evento</td><td><span class="stato-parz">parziale</span> — automatismo nuovo</td><td class="cxcell"><span class="cx-dots" title="4 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></td><td class="eff">3–4 g</td><td class="sched">CL-5 · FEATURE-003</td></tr>
+          <tr><td class="num">11</td><td>Giacenza di magazzino</td><td><span class="stato-parz">parziale</span> — fase 5, estensione nuova</td><td class="cxcell"><span class="cx-dots" title="4 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span></td><td class="eff">4–5 g</td><td class="sched">CL-11</td></tr>
+          <tr><td class="num">12</td><td>Profili beverage con costo</td><td><span class="stato-nuovo">bloccata</span> — 4 decisioni aperte</td><td class="cxcell"><span class="cx-dots" title="5 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></td><td class="eff">4–6 g</td><td class="sched">CL-12</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">CL-1</span><span class="badge done">Implementata — 20/08/2026</span></div>
+      <h3 class="card-title">Preventivo raggruppato per categorie</h3>
+      <blockquote class="richiesta">Le categorie dei prodotti/servizi devono essere evidenziate (Antipasti, Primi, Secondi, Dolci, Apparecchiatura, Consumabili), con gli elementi raggruppati dentro ciascuna, invece di un'unica lista.</blockquote>
+
+      <h4>Cosa c'è già</h4>
+      <ul class="plain">
+        <li><code>ricetta.categoria_portata</code> è un enum popolato: <code>antipasto, primo, secondo, contorno, dessert, finger, altro</code>.</li>
+        <li>I tipi di riga sono già distinti: <code>ricetta</code>, <code>materia_prima</code>, <code>consumabile</code>, <code>extra</code> (con <code>categoria_extra</code>).</li>
+        <li>La lista ricette e il menu mostrano già l'etichetta di portata riga per riga.</li>
+      </ul>
+
+      <h4>Cosa manca</h4>
+      <p>Il raggruppamento in presentazione, in due punti: il PDF stampa una lista piatta ordinata per <code>ordine</code> (<span class="file">lib/pdf/preventivoPdf.tsx:140</span>) e la pagina preventivo fa lo stesso (<span class="file">app/(app)/preventivi/[id]/page.tsx:216</span>). <strong>Nessuna migrazione necessaria</strong>: si raggruppa su <code>categoria_portata</code> + <code>tipo_riga</code>.</p>
+
+      <div class="decision-box"><strong>Decise il 20/08/2026 — si può implementare:</strong>
+        <ol>
+          <li><strong>"Apparecchiatura" e "Consumabili" sono due gruppi distinti.</strong> Oggi <code>consumabile.categoria</code> è testo libero (<code>default 'generico'</code>): non è affidabile per separarli. Serve una <strong>colonna nuova</strong> <code>tipo_consumabile</code> (enum <code>apparecchiatura</code> | <code>consumabile</code>, default <code>consumabile</code>) sull'anagrafica. <em>Questo aggiunge una migrazione a una scheda che ne era priva.</em></li>
+          <li>Materie prime dirette → gruppo <strong>"Altri prodotti"</strong>; righe extra → blocco <strong>"Servizi e altre voci"</strong> in coda. Nessuna migrazione, nessuna portata da assegnare a mano.</li>
+          <li><strong>Nessun subtotale per categoria</strong> sul PDF cliente: le categorie fanno solo da intestazione, il totale resta uno solo in fondo.</li>
+        </ol>
+      </div>
+      <div class="cx lv3"><span class="cx-label">Complessità</span><span class="cx-dots" title="3 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="cx-note">medio-bassa — presentazione, più una migrazione additiva decisa il 20/08</span><span class="cx-eff">≈ 1–1,5 giornate</span></div>
+      <h4>Cosa serve per implementarla</h4>
+      <ul class="serve">
+        <li><b>Migrazioni</b><span>Una, additiva: <code>tipo_consumabile</code> su <code>consumabile</code> (enum <code>apparecchiatura</code>|<code>consumabile</code>, default <code>consumabile</code>), conseguenza della decisione 1. Il resto del raggruppamento gira su dati già presenti (<code>ricetta.categoria_portata</code>, <code>tipo_riga</code>).</span></li>
+        <li><b>Codice</b><span>Una sola funzione di raggruppamento e ordinamento condivisa, richiamata da <span class="file">lib/pdf/preventivoPdf.tsx</span> e <span class="file">app/(app)/preventivi/[id]/page.tsx</span>; la stessa serve a FEATURE-013 sul menu. <strong>Punto scoperto in fase di preparazione:</strong> <code>CalcoloPreventivo</code> non porta con sé le ricette, quindi la <code>categoria_portata</code> di una riga-ricetta oggi <em>non è disponibile</em> né alla pagina né al PDF — va caricata in <code>calcolaPreventivo</code> ed esposta nel tipo, altrimenti non c'è niente su cui raggruppare.</span></li>
+        <li class="no"><b>Decisioni</b><span><strong>Tutte prese il 20/08/2026</strong> (riquadro qui sopra). Nessun blocco residuo.</span></li>
+        <li class="no"><b>Dipendenze</b><span>Nessuna.</span></li>
+        <li><b>Test</b><span>Ordine delle categorie, righe senza portata, subtotali se richiesti. Nessun costo viene ricalcolato: nessun invariante a rischio.</span></li>
+      </ul>
+      <p class="soft">È la voce col miglior rapporto valore/costo dell'intera checklist: la farei per prima. Parente stretta di FEATURE-013 (ordinamento automatico del menu per portata): conviene farle insieme, stessa logica di raggruppamento.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">CL-2</span><span class="badge decision">Parziale — vedi FEATURE-007/008</span></div>
+      <h3 class="card-title">Materie prime: codice interno e categorie a scomparsa</h3>
+      <blockquote class="richiesta">Codice interno univoco per ogni materia prima; categorie predefinite (Carne, Pesce, Bevande, Dispensa, Verdura, Frutta, Latticini…); nella schermata principale solo l'elenco delle categorie, che si espande al clic mostrando le materie prime associate.</blockquote>
+
+      <h4>a) Codice interno univoco — nuovo</h4>
+      <p>Non previsto dalla specifica. Migrazione additiva: colonna <code>codice text</code> su <code>materia_prima</code> più indice unico per utente, parziale su <code>deleted_at is null</code> (altrimenti le materie prime soft-deleted continuano a occupare il codice).</p>
+      <div class="decision-box"><strong>Da decidere:</strong> codice inserito a mano o generato automaticamente dalla categoria (es. <code>CAR-0001</code>)? E serve anche su <strong>consumabili</strong> e <strong>bevande</strong>, o solo sulle materie prime?</div>
+
+      <h4>b) Categorie predefinite — il campo esiste già</h4>
+      <p><code>materia_prima.categoria</code> esiste dalla migrazione <code>0001</code> (<code>text not null default 'dispensa'</code>) ma è <strong>testo libero, senza lista chiusa e senza selettore in UI</strong>: oggi di fatto tutto finisce in "dispensa". Progetto già scritto in <strong>FEATURE-007/008</strong> più in basso (tabella <code>categoria_materia_prima</code> con eventuale gerarchia).</p>
+      <div class="decision-box"><strong>Da decidere:</strong> enum SQL o tabella categorie editabile? <strong>Consiglio la tabella</strong>: con l'enum ogni categoria nuova richiede una migrazione, e sappiamo già che <code>ALTER TYPE … ADD VALUE</code> va isolato in un file a parte (l'abbiamo fatto due volte, migrazioni <code>0004</code> e <code>0006</code>).</div>
+
+      <h4>c) Vista ad accordion — nuova</h4>
+      <p>Oggi <span class="file">app/(app)/materie-prime/page.tsx</span> è una tabella piatta di tutte le materie prime. Da rifare come elenco di categorie espandibili con contatore per categoria.</p>
+
+      <div class="cx lv3"><span class="cx-label">Complessità</span><span class="cx-dots" title="3 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="cx-note">media — due migrazioni additive più una schermata da rifare</span><span class="cx-eff">≈ 2–3 giornate</span></div>
+      <h4>Cosa serve per implementarla</h4>
+      <ul class="serve">
+        <li><b>Migrazioni</b><span>Due, additive: (a) <code>materia_prima.codice</code> + indice unico per utente <strong>parziale su <code>deleted_at is null</code></strong>; (b) tabella <code>categoria_materia_prima</code> con FK da <code>materia_prima</code>, e backfill dal testo libero attuale (oggi quasi tutto "dispensa").</span></li>
+        <li><b>Codice</b><span><span class="file">lib/db/materiePrime.ts</span> + nuovo modulo per le categorie; selettore categoria nel form; riscrittura di <span class="file">app/(app)/materie-prime/page.tsx</span> da tabella piatta ad accordion con contatore.</span></li>
+        <li><b>Decisioni</b><span>Codice manuale o generato dalla categoria; se serve anche su consumabili e bevande; enum SQL o tabella editabile (consigliata la tabella); <strong>il nodo "Bevande"</strong> segnalato nel riquadro rosso qui sotto.</span></li>
+        <li class="no"><b>Dipendenze</b><span>Nessuna. Autonoma, si può fare in parallelo a CL-1.</span></li>
+        <li><b>Test</b><span>Unicità del codice per utente, codice riutilizzabile dopo soft delete, backfill che non perde nessuna materia prima esistente.</span></li>
+      </ul>
+      <div class="warn"><strong>Da chiarire prima di implementare:</strong> il cliente elenca <strong>"Bevande"</strong> tra le categorie di materia prima, ma le bevande hanno già un'anagrafica dedicata (<code>bevanda</code>: formato confezione, capacità unitaria, unità per collo, flag alcolica) su cui gira tutto il calcolo beveraggio. Creare anche una categoria "Bevande" tra le materie prime significa due posti diversi dove inserire l'acqua e un rischio di doppio conteggio nella lista spesa.</div>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">CL-3</span><span class="badge dep">Già pianificata — FEATURE-005, fase 6</span></div>
+      <h3 class="card-title">Lista degli attrezzi personali</h3>
+      <blockquote class="richiesta">Sezione per inserire e gestire gli attrezzi di proprietà (pentole, padelle, coltelli, contenitori, utensili…), come patrimonio disponibile per gli eventi.</blockquote>
+      <p>Coperta dalla specifica §4.5 (tabella <code>attrezzatura</code>) e §6 schermata 11, fase 6. <strong>Zero codice scritto.</strong> La specifica prevede più di quanto chiesto: oltre a nome e categoria (cottura, preparazione, freddo, trasporto, servizio, utensili), anche costo d'acquisto, data, anni di ammortamento, eventi stimati/anno, quota per evento, stato, valore di dismissione e pannello di ritorno sull'investimento (§5.10).</p>
+      <div class="cx lv4"><span class="cx-label">Complessità</span><span class="cx-dots" title="4 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="cx-note">alta — scelta la scheda completa con ammortamento, non il solo inventario</span><span class="cx-eff">≈ 3–4 giornate</span></div>
+      <h4>Cosa serve per implementarla</h4>
+      <ul class="serve">
+        <li><b>Migrazioni</b><span>Due: (a) enum <code>categoria_attrezzatura</code> (cottura, preparazione, freddo, trasporto, servizio, utensili) isolato in un file a parte, come già fatto per <code>0004</code> e <code>0006</code>; (b) tabella <code>attrezzatura</code> completa — nome, categoria, quantità, note, <code>costo_acquisto_cent</code>, <code>data_acquisto</code>, <code>anni_ammortamento</code>, <code>eventi_anno_stimati</code>, <code>valore_dismissione_cent</code>, <code>stato</code>, <code>deleted_at</code> — con i check lato server (anni &gt; 0, eventi &gt; 0, dismissione ≤ costo).</span></li>
+        <li><b>Codice</b><span><span class="file">lib/db/attrezzature.ts</span> + CRUD in <span class="file">app/(app)/attrezzature/</span> sul pattern di <span class="file">app/(app)/consumabili/</span> (<code>page.tsx</code> + <code>actions.ts</code>), <strong>più</strong> una funzione pura nuova <code>quotaAttrezzaturaCent</code> in <span class="file">lib/calc/</span>: <code>(costo − valore_dismissione) / (anni × eventi_anno)</code>, con la soglia di spesatura 100 € letta dalle impostazioni (mai hardcoded, §8).</span></li>
+        <li class="no"><b>Decisioni</b><span><strong>Presa il 20/08/2026:</strong> scheda completa con ammortamento. Nessun blocco residuo.</span></li>
+        <li><b>Dipendenze</b><span>Nessuna in entrata. <strong>Sblocca CL-5</strong>, che senza questa non si può fare.</span></li>
+        <li><b>Test</b><span>Soft delete (invariante 3); <code>quotaAttrezzaturaCent</code> con i casi limite già richiesti dalla definition of done — <strong>attrezzatura sotto la soglia di spesatura</strong> (quota nulla, costo a spesa immediata), valore di dismissione = 0, valore di dismissione = costo, anni o eventi/anno a 0 che devono <strong>lanciare</strong> e non restituire un ripiego silenzioso (§8).</span></li>
+      </ul>
+      <div class="decision-box"><strong>Decisa il 20/08/2026:</strong> si fa la <strong>scheda completa con ammortamento</strong> (§5.10), non il solo inventario. Quindi: costo d'acquisto, data, anni, eventi stimati/anno, valore di dismissione, quota per evento calcolata e soglia di spesatura 100 € presa dalle <code>impostazioni</code>. Va messo agli atti che è un'<strong>uscita esplicita dall'ordine di fase</strong> del CLAUDE.md (§7: le attrezzature sono fase 6) e che si entra subito nel territorio dell'<strong>invariante 7</strong> — le quote consolidate su eventi conclusi non cambiano mai, anche se la quota dell'attrezzatura viene poi ricalcolata.</div>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">CL-4</span><span class="badge dep">Già pianificata — FEATURE-004, fase 4</span></div>
+      <h3 class="card-title">Lista della spesa dal preventivo</h3>
+      <blockquote class="richiesta">Dal preventivo dell'evento, generare automaticamente la lista della spesa: prodotto, fornitore, quantità, costo, eventuale totale per fornitore. Stampabile.</blockquote>
+
+      <h4>Cosa c'è già</h4>
+      <ul class="plain">
+        <li>L'esplosione ricette → materie prime, ricorsiva sulle sotto-ricette, è già scritta e testata (<code>caricaGrafoCalc</code>, <code>/lib/calc/</code>).</li>
+        <li><code>fornitore_preferito</code> esiste già su <code>materia_prima</code>.</li>
+        <li>Lo <code>sfrido_pct</code> è salvato sul preventivo <em>proprio</em> per questo uso (decisione di fase 1).</li>
+        <li>La pipeline PDF esiste ed è riusabile con un nuovo template.</li>
+      </ul>
+
+      <h4>Due scostamenti dalla specifica, da decidere</h4>
+      <ol>
+        <li>Il cliente la vuole <strong>dal singolo preventivo/evento</strong>; la specifica §5.6 la definisce <strong>aggregata su un intervallo di date</strong> (ordine unico al fornitore per più eventi). Sono due viste della stessa esplosione. <strong>Consiglio:</strong> partire dal singolo preventivo — più semplice e immediatamente utile — e aggiungere l'aggregazione dopo.</li>
+        <li>La specifica sottrae la <strong>giacenza di magazzino</strong> (CL-11). Finché il magazzino non esiste quel passaggio si salta, e va detto in schermata invece di far finta che il dato sia completo.</li>
+      </ol>
+      <p>Da aggiungere rispetto a FEATURE-004: raggruppamento e <strong>totale per fornitore</strong> (non era nella specifica, è una richiesta nuova del cliente).</p>
+
+      <div class="cx lv3"><span class="cx-label">Complessità</span><span class="cx-dots" title="3 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="cx-note">media — il motore di calcolo esiste già, manca l'aggregazione</span><span class="cx-eff">≈ 2–3 giornate</span></div>
+      <h4>Cosa serve per implementarla</h4>
+      <ul class="serve">
+        <li class="no"><b>Migrazioni</b><span>Nessuna per la versione dal singolo preventivo: tutto è calcolabile live dall'esplosione già esistente. Ne serve una solo se si vuole memorizzare la spesa spuntata/acquistata.</span></li>
+        <li><b>Codice</b><span>Nuovo modulo puro in <span class="file">lib/calc/</span>: esplosione ricorsiva (già scritta e testata) → somma per materia prima → sfrido → arrotondamento per eccesso al formato d'acquisto → raggruppamento e totale per fornitore. Poi una pagina e un template PDF sulla pipeline esistente.</span></li>
+        <li><b>Decisioni</b><span>Singolo preventivo (consigliato) o aggregato per intervallo di date come da §5.6; cosa mostrare quando il fornitore manca.</span></li>
+        <li class="no"><b>Dipendenze</b><span>Nessuna dura. CL-11 la migliora dopo (sottrazione delle giacenze), ma non la blocca.</span></li>
+        <li><b>Test</b><span>Sfrido applicato uniformemente a righe-ricetta <em>e</em> materie prime dirette (l'incoerenza segnalata sotto), arrotondamento per eccesso (invariante 6), stessa materia prima usata da più ricette e sotto-ricette, fornitore assente.</span></li>
+      </ul>
+      <div class="warn"><strong>Incoerenza nota da gestire qui:</strong> oggi le righe-ricetta calcolano il food cost <strong>senza</strong> sfrido, le righe-materia-prima diretta <strong>con</strong> sfrido (FEATURE-017, accettata esplicitamente). Per la lista spesa lo sfrido va applicato a tutto — è il suo scopo originario. Non è un problema, ma va messo nero su bianco nei test.</div>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">CL-5</span><span class="badge dep">Metà pianificata — FEATURE-003</span></div>
+      <h3 class="card-title">Attrezzature necessarie per l'evento</h3>
+      <blockquote class="richiesta">Dal preventivo, generare la lista delle attrezzature necessarie allo svolgimento, distinguendo tra già disponibili fra quelle personali, da procurarsi/noleggiare, e quantità necessarie.</blockquote>
+      <p><strong>Coperto dalla specifica:</strong> <code>evento_attrezzatura</code> (attrezzature impiegate per evento) e <code>noleggio</code> (attrezzatura di terzi con costo) esistono in §4.5, fase 6 — da lì nascono la distinzione disponibili/da noleggiare e le quantità.</p>
+      <p><strong>Non coperto, ed è la parte grossa:</strong> non esiste alcun legame fra ricetta e attrezzatura necessaria, quindi oggi il sistema non può dedurre nulla dal menu e la lista resterebbe una spunta manuale. Serve una tabella nuova sul modello di <code>ricetta_ingrediente</code> (già progettata come <code>ricetta_attrezzatura</code> in FEATURE-003).</p>
+      <div class="decision-box"><strong>Da decidere:</strong> l'attrezzatura si lega alla <strong>ricetta</strong> (la teglia serve per la lasagna) o al <strong>tipo di servizio</strong> (il forno serve sempre)? E le quantità fra ricette diverse <strong>si sommano</strong> o si prende il <strong>massimo</strong> (una pentola usata da tre ricette resta una pentola)? Senza queste due risposte il modello non si progetta.</div>
+      <div class="cx lv4"><span class="cx-label">Complessità</span><span class="cx-dots" title="4 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="cx-note">alta — modello di dominio nuovo e due decisioni bloccanti</span><span class="cx-eff">≈ 3–4 giornate, dopo CL-3</span></div>
+      <h4>Cosa serve per implementarla</h4>
+      <ul class="serve">
+        <li><b>Migrazioni</b><span>Tre tabelle: <code>ricetta_attrezzatura</code> (nuova, sul modello di <code>ricetta_ingrediente</code>), più <code>evento_attrezzatura</code> e <code>noleggio</code> già previste in §4.5.</span></li>
+        <li><b>Codice</b><span>Sezione attrezzature nella scheda ricetta; calcolo del fabbisogno dal menu del preventivo (somma o massimo, vedi decisioni); vista a tre colonne disponibili / da procurare / da noleggiare con quantità.</span></li>
+        <li><b>Decisioni</b><span><strong>Bloccanti:</strong> l'attrezzatura si lega alla ricetta o al tipo di servizio? Le quantità fra ricette diverse si sommano o si prende il massimo? Senza risposte il modello non si progetta.</span></li>
+        <li><b>Dipendenze</b><span><strong>CL-3 è dura:</strong> senza anagrafica attrezzature non c'è nulla a cui legarsi.</span></li>
+        <li><b>Test</b><span>Somma vs massimo, sotto-ricette che usano la stessa attrezzatura contata una volta sola, fabbisogno superiore al posseduto che finisce in "da noleggiare".</span></li>
+      </ul>
+      <p class="soft"><strong>Dipendenza dura:</strong> non realizzabile prima di CL-3 (serve l'anagrafica attrezzature).</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">CL-11</span><span class="badge dep">Parziale — fase 5</span></div>
+      <h3 class="card-title">Giacenza di magazzino</h3>
+      <blockquote class="richiesta">Sapere quali prodotti sono in magazzino e in che quantità, cosa è dispensa e cosa materiale di consumo, con le date di scadenza. Distinguere i prodotti soggetti a scadenza (alimenti, bevande, materie prime, dispensa) dai materiali che non ne hanno (pellicola, piatti di carta, bicchieri, tovaglioli, contenitori).</blockquote>
+      <p><strong>Già pianificato:</strong> tabella <code>lotto</code> (§4.5) con numero lotto, fornitore, data ricevimento, scadenza, quantità ricevuta e residua; avvisi per scaduti e in scadenza entro N giorni (default 3, già previsto fra le impostazioni configurabili). Carico per lotto, scarico manuale semplificato — lo scarico automatico dalla produzione è <strong>esplicitamente fuori perimetro</strong> (§5.9).</p>
+      <p><strong>Nuovo:</strong> in specifica il lotto è legato <strong>solo a <code>materia_prima_id</code></strong>. Il cliente chiede giacenze anche per i materiali di consumo senza scadenza: l'anagrafica <code>consumabile</code> esiste dalla fase 1, ma non ha né giacenza né lotti. Estensione: scadenza nullable e riferimento alternativo materia prima / consumabile, con lo stesso pattern "esattamente un riferimento" già usato in FEATURE-017 e 018 — terreno noto.</p>
+      <div class="decision-box"><strong>Da decidere:</strong> per i materiali senza scadenza serve davvero la gestione <strong>a lotti</strong>, o basta una <strong>giacenza semplice</strong> (quantità corrente, corretta a mano)? La seconda è molto più semplice e probabilmente sufficiente per pellicola e tovaglioli.</div>
+      <div class="cx lv4"><span class="cx-label">Complessità</span><span class="cx-dots" title="4 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="cx-note">alta — modulo intero, nuovo, con uso da campo</span><span class="cx-eff">≈ 4–5 giornate</span></div>
+      <h4>Cosa serve per implementarla</h4>
+      <ul class="serve">
+        <li><b>Migrazioni</b><span>Tabella <code>lotto</code> (§4.5) con <strong>scadenza nullable</strong> e riferimento alternativo materia prima / consumabile, con lo stesso vincolo "esattamente un riferimento" già usato nelle migrazioni <code>0005</code> e <code>0007</code>; più i movimenti di scarico manuale.</span></li>
+        <li><b>Codice</b><span>Nuovo modulo in <span class="file">lib/db/</span>, schermate carico / scarico / giacenza <strong>mobile-first</strong> (è una sezione da campo: obbligatorio per la definition of done), avvisi scaduti e in scadenza sulla soglia già prevista fra le impostazioni (default 3 giorni).</span></li>
+        <li><b>Decisioni</b><span>Per i materiali senza scadenza servono davvero i lotti o basta una giacenza semplice corretta a mano? La seconda è molto più semplice e probabilmente sufficiente per pellicola e tovaglioli.</span></li>
+        <li class="no"><b>Dipendenze</b><span>Nessuna in entrata. Lo scarico automatico dalla produzione resta <strong>fuori perimetro</strong> (§5.9): non va implementato "già che ci siamo".</span></li>
+        <li><b>Test</b><span>Residuo di lotto mai negativo, consumo in ordine di scadenza, soglia degli avvisi, articolo senza scadenza che non finisce mai fra gli scaduti.</span></li>
+      </ul>
+      <p class="soft"><strong>Sinergia:</strong> una volta fatto, la lista spesa (CL-4) può sottrarre le giacenze come previsto da §5.6.</p>
+    </article>
+
+    <article class="card bug">
+      <div class="card-head"><span class="card-id">CL-12</span><span class="badge decision">Bloccata — 4 risposte mancanti</span></div>
+      <h3 class="card-title">Profili beverage con costo, collegati al menu</h3>
+      <blockquote class="richiesta">I profili beverage vanno rivisti: ogni profilo deve avere un costo associato ed essere collegabile ai menu. Es. "Base — acqua, birra, caffè: €100" e "Premium — acqua, spumante, Coca-Cola, amari: €150", da sommare al prezzo del menu (Menu Battesimo: menu base €X + Beverage Base €100 / Premium €150).</blockquote>
+      <p>È il punto più delicato della checklist: <strong>contraddice il modello attuale, non lo estende.</strong></p>
+
+      <h4>Come funziona oggi</h4>
+      <ul class="plain">
+        <li><code>profilo_beveraggio</code> + <code>profilo_beveraggio_riga</code> sono un template di <strong>millilitri a testa per categoria</strong>. Nessun prezzo sul profilo, nessun collegamento al menu.</li>
+        <li>Il costo emerge dal <strong>calcolo a consumo</strong> (§5.11): correttivi rapidi → fattore di distribuzione vino/birra −25% → scalatura ospiti (bambini senza alcolici) → arrotondamento per eccesso a unità e poi a collo → prezzo dei prodotti effettivamente assegnati, con quota % per prodotto (BUG-001).</li>
+      </ul>
+      <p>Un prezzo di vendita forfettario <em>può</em> convivere con un costo calcolato a consumo — ma vanno tenuti distinti, ed è esattamente la distinzione che la richiesta non fa.</p>
+
+      <div class="decision-box"><strong>Quattro domande da porre prima di progettare</strong> (materia commerciale: non si decide in silenzio):
+        <ol>
+          <li><strong>€100 è a testa o a evento?</strong> Cambia completamente il modello — un matrimonio da 200 persone con €100 di beverage totale non sta in piedi, ma è una scelta sua, non una deduzione tecnica.</li>
+          <li>Il forfait <strong>sostituisce</strong> il calcolo a consumo o è solo il <strong>prezzo di vendita</strong>, con il consumo che continua a girare dietro per food cost, margine e lista spesa? <strong>Consiglio nettamente la seconda:</strong> altrimenti si perde la base per generare la lista spesa del beveraggio (CL-4) e il margine reale diventa invisibile.</li>
+          <li>Il pacchetto si lega al <strong>menu</strong> (come scritto) o al <strong>preventivo</strong>? Legarlo al menu significa che ogni menu porta con sé le sue opzioni beverage: più lavoro, ma è ciò che descrive.</li>
+          <li>I profili già inseriti in produzione vanno migrati (prezzo a 0, li compila lui) o riscritti da zero?</li>
+        </ol>
+      </div>
+      <div class="cx lv5"><span class="cx-label">Complessità</span><span class="cx-dots" title="5 su 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="cx-note">massima — contraddice il modello attuale, non lo estende</span><span class="cx-eff">≈ 4–6 giornate, a risposte arrivate</span></div>
+      <h4>Cosa serve per implementarla</h4>
+      <ul class="serve">
+        <li><b>Risposte</b><span><strong>Le quattro domande qui sopra, bloccanti.</strong> Sono decisioni commerciali (prezzo, unità di vendita, margine): non si deducono dal codice e non si prendono in silenzio. Finché mancano, la stima non parte.</span></li>
+        <li><b>Migrazioni</b><span>Prezzo sul profilo (a testa o a evento, dipende dalla risposta 1), legame profilo ↔ menu o ↔ preventivo (risposta 3), migrazione dei profili già in produzione (risposta 4).</span></li>
+        <li><b>Codice</b><span>Separazione esplicita fra <strong>prezzo di vendita forfettario</strong> e <strong>costo a consumo</strong> nel calcolo beveraggio e nei totali del preventivo; selettore del pacchetto e resa a PDF. La pipeline §5.11 (correttivi → distribuzione → scalatura → colli) resta e continua a girare dietro.</span></li>
+        <li><b>Dipendenze</b><span>Si sovrappone a UX-003; conviene chiuderla insieme. Il forfait senza costo a consumo romperebbe la lista spesa del beveraggio di CL-4.</span></li>
+        <li><b>Rischio</b><span>Tocca l'<strong>invariante 1</strong>: i preventivi già inviati hanno lo snapshot del beveraggio congelato e devono restare identici dopo la migrazione. Il forfait non deve <em>mai</em> sovrascrivere il costo calcolato.</span></li>
+        <li><b>Test</b><span>Prezzo a testa vs a evento, margine reale con forfait attivo, preventivo inviato prima della migrazione che resta bit-per-bit invariato.</span></li>
+      </ul>
+      <p class="soft">Si sovrappone a <strong>UX-003</strong> (confusione sul funzionamento dei profili beveraggio): parte di questa richiesta potrebbe nascere proprio da lì, cioè dal fatto che oggi il legame profilo → costo non è visibile da nessuna parte.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">CL-?</span><span class="badge decision">Da chiedere</span></div>
+      <h3 class="card-title">Punti mancanti: 6, 7, 8, 9, 10</h3>
+      <p>La checklist ricevuta salta dal punto 5 al punto 11. Da chiedere al cliente se i cinque punti intermedi sono andati persi nel copia-incolla: potrebbero contenere richieste che cambiano le priorità qui sopra.</p>
+    </article>
+  </section>
+
+  <section class="group">
+    <h2 class="group-title">Priorità alta — bug</h2>
+
+    <article class="card done">
+      <div class="card-head">
+        <span class="card-id">BUG-003</span>
+        <span class="badge done">Risolto — 01/08/2026</span>
+      </div>
+      <h3 class="card-title">"Segna come inviato" va in errore (su preventivo di un altro utente)</h3>
+
+      <h4>Diagnosi (confermata via SQL diretta su Supabase)</h4>
+      <p>Due preventivi bozza dell'utente "marziaa" avevano la riga <code>acqua_naturale</code> con <code>unita = 'pz'</code>, mentre la bevanda già assegnata ("acqua rioba") aveva <code>unita = 'ml'</code>. <code>aggiungiProdottoBeveraggio</code> valida la coerenza unità solo al momento dell'assegnazione; <code>impostaRigaBeveraggio</code> (usata dal form generico "categoria / quantità / unità" per <em>ri-salvare</em> una riga già esistente) faceva un <code>upsert</code> senza ricontrollare i prodotti già assegnati — risalvando la riga con l'unità sbagliata il disallineamento passava silenzioso. Al primo calcolo (incluso l'invio) <code>calcolaBeveraggio</code> lanciava un'eccezione non gestita in <code>inviaPreventivo</code>, mostrata all'utente come errore generico perché Next.js in produzione nasconde il messaggio reale dei Server Component/Server Action.</p>
+
+      <h4>Fix implementato</h4>
+      <ul class="plain">
+        <li>Guardia aggiunta in <span class="file">lib/db/preventivi.ts</span> (<code>impostaRigaBeveraggio</code>): rifiuta esplicitamente il salvataggio se cambierebbe l'unità di una riga che ha già un prodotto assegnato con unità diversa — stesso controllo già presente in <code>aggiungiProdottoBeveraggio</code>, ora anche sul percorso di modifica riga.</li>
+        <li>I due preventivi già affetti in produzione corretti con un <code>UPDATE</code> mirato via SQL Editor (bypassa le RLS come proprietario progetto), verificato con una query di coerenza unità/bevanda che ora torna vuota.</li>
+      </ul>
+      <p class="soft">Nota operativa: il messaggio d'errore mostrato all'utente in produzione era generico (digest Next.js) perché il bug riguardava dati di un altro utente, non riproducibile in locale con la propria sessione — la diagnosi è passata da query dirette in SQL Editor invece che da un repro browser.</p>
+    </article>
+
+    <article class="card done">
+      <div class="card-head">
+        <span class="card-id">BUG-001</span>
+        <span class="badge done">Risolto — 28/07/2026</span>
+      </div>
+      <h3 class="card-title">Impossibile inserire la stessa voce più volte</h3>
+
+      <h4>Diagnosi (confermata)</h4>
+      <p>Righe ricetta/extra: <code>insert()</code> puro, nessun bug. Righe di beveraggio: <code>impostaRigaBeveraggio</code> faceva un <code>upsert()</code> su <code>(preventivo_beveraggio_id, categoria)</code> — una sola riga per categoria, quindi assegnare due volte la stessa categoria sovrascriveva. Confermato che il caso segnalato era questo.</p>
+
+      <h4>Decisione presa</h4>
+      <p><strong>Opzione B</strong> (cambio di modello, invece del minimo intervento A): ora una categoria di beveraggio può avere <strong>più prodotti assegnati</strong>, ciascuno con una propria quota % del volume necessario (es. 60% Chardonnay + 40% Pinot su "vino bianco").</p>
+
+      <h4>Cosa è stato implementato</h4>
+      <ul class="plain">
+        <li>Nuova tabella <code>preventivo_beveraggio_prodotto</code> (migrazione <code>0002</code>, additiva, con backfill automatico: i prodotti già assegnati diventano quota 100%).</li>
+        <li><code>lib/calc/beveraggio.ts</code> riscritto: costo/colli/scorta calcolati per prodotto e sommati per categoria; valida che la somma delle quote non superi 100%.</li>
+        <li>Nuove funzioni <code>aggiungiProdottoBeveraggio</code> / <code>rimuoviProdottoBeveraggio</code> in <span class="file">lib/db/preventivi.ts</span>.</li>
+        <li>UI: ogni categoria elenca i prodotti assegnati (nome, quota, colli, costo) più un form per aggiungerne altri finché resta quota disponibile.</li>
+        <li>4 nuovi test unitari (quota 60/40, copertura parziale, quota &gt;100% lancia errore, unità incoerente su uno di più prodotti).</li>
+      </ul>
+    </article>
+
+    <article class="card done">
+      <div class="card-head">
+        <span class="card-id">BUG-002</span>
+        <span class="badge done">Risolto — 28/07/2026</span>
+      </div>
+      <h3 class="card-title">Preventivo non più apribile dopo inserimento bevande</h3>
+
+      <h4>Causa (confermata leggendo il codice)</h4>
+      <p>Una <code>bevanda</code> ha un'unità (<code>ml</code>/<code>pz</code>) indipendente dalla categoria, senza validazione incrociata. L'assegnazione di un prodotto con unità diversa da quella della riga veniva salvata senza controlli; al caricamento successivo <code>calcolaBeveraggio</code> lanciava un'eccezione non gestita, intercettata solo dall'error boundary root (<span class="file">app/error.tsx</span>): il preventivo restava bloccato per sempre, perché i controlli per correggere il dato erano più sotto nello stesso render che non veniva mai raggiunto.</p>
+
+      <h4>Fix implementato — due livelli</h4>
+      <ul class="plain">
+        <li><strong>Prevenzione:</strong> <code>aggiungiProdottoBeveraggio</code> valida ora <code>bevanda.unita === riga.unita</code> prima di scrivere su DB; in UI il menu "aggiungi prodotto" mostra solo prodotti con unità compatibile.</li>
+        <li><strong>Resilienza:</strong> <code>calcolaPreventivo</code> non lancia più: se il beveraggio non si calcola, la pagina resta apribile con un banner d'errore e un pannello per rimuovere la riga/prodotto incriminato senza intervento diretto sul database.</li>
+      </ul>
+      <p class="soft">Un eventuale preventivo già bloccato in produzione si sblocca da solo (o è correggibile dal banner) non appena la migrazione <code>0002</code> è applicata e il codice deployato.</p>
+    </article>
+  </section>
+
+  <section class="group">
+    <h2 class="group-title">Feature e UX — progetto di massima</h2>
+    <p class="soft" style="margin-top:-0.6rem;">Molte richieste presuppongono entità non ancora costruite: le migrazioni applicate arrivano alla <code>0005</code> (più <code>0006</code>/<code>0007</code> create ma non ancora applicate) e coprono la sola Fase 1 con le sue estensioni — mancano <code>evento</code>, <code>attrezzatura</code>, <code>pagamento</code>, <code>lotto</code>. Il CLAUDE.md fissa un ordine di fase preciso e chiede di non anticiparlo: lo segnalo caso per caso.</p>
+
+    <article class="card done">
+      <div class="card-head">
+        <span class="card-id">FEATURE-017</span>
+        <span class="badge done">Implementata — 01/08/2026</span>
+      </div>
+      <h3 class="card-title">Materia prima diretta in menu/preventivo, senza ricetta</h3>
+      <p>Richiesta: poter inserire in un preventivo una voce come frutta, patatine o olive — una materia prima già pronta all'uso, non una ricetta con distinta base.</p>
+
+      <h4>Decisioni di dominio prese con l'utente (non assunte in silenzio)</h4>
+      <ul class="plain">
+        <li><strong>Ambito:</strong> disponibile sia nel menu (template riutilizzabile tra preventivi) sia nel singolo preventivo, non solo nel preventivo come nella richiesta iniziale — coerente con come già funzionano le ricette.</li>
+        <li><strong>Quantità:</strong> si inserisce una quantità "a persona" (nell'unità d'uso della materia prima); il sistema scala automaticamente per <code>ospiti × (1 + sfrido%)</code> (formula §5 letterale), ricalcolata live sulle bozze — non un totale fisso digitato a mano come le righe extra.</li>
+        <li><strong>Sfrido:</strong> applicato al food cost di queste righe. <strong>Incoerenza nota e accettata esplicitamente:</strong> le righe-ricetta calcolano il food cost senza sfrido (decisione già presa in fase 1), le righe-materia-prima con sfrido — stesso preventivo, due logiche di costo diverse a seconda del tipo di riga.</li>
+      </ul>
+
+      <h4>Cosa è stato implementato</h4>
+      <ul class="plain">
+        <li>Migrazione <code>0004_riga_materia_prima_enum.sql</code>: nuovo valore <code>materia_prima</code> per l'enum <code>tipo_riga_preventivo</code>, isolato in un file a parte per il vincolo Postgres su <code>ALTER TYPE ... ADD VALUE</code> nella stessa transazione di chi lo usa.</li>
+        <li>Migrazione <code>0005_riga_materia_prima.sql</code>: <code>menu_riga.ricetta_id</code> diventa nullable con <code>materia_prima_id</code>/<code>quantita_persona</code> alternativi (stesso pattern "esattamente un riferimento" già usato in <code>ricetta_ingrediente</code>); stessa estensione su <code>preventivo_riga</code> con <code>materia_prima_id</code> e vincolo <code>riga_coerente</code> aggiornato ai tre casi.</li>
+        <li><span class="file">lib/calc/preventivo.ts</span>: nuova <code>quantitaEventoMateriaPrima</code> (quantità a persona × ospiti × (1+sfrido%)), 8 nuovi test unitari (sfrido 0, un solo ospite, input non validi, bucket food cost).</li>
+        <li><span class="file">lib/db/preventivi.ts</span>: <code>aggiungiRigaMateriaPrima</code>; <code>creaPreventivo</code> copia le righe materia-prima del menu; <code>calcolaPreventivo</code> calcola quantità evento e costo unitario live (bozza) o da snapshot (inviato); <code>duplicaPreventivo</code> copia il nuovo campo.</li>
+        <li><span class="file">lib/db/menu.ts</span>: <code>aggiungiMateriaPrimaAMenu</code>.</li>
+        <li>UI: form "Aggiungi materia prima" sia in <span class="file">app/(app)/menu/[id]/page.tsx</span> sia in <span class="file">app/(app)/preventivi/[id]/page.tsx</span>; tabella righe preventivo mostra quantità a persona, quantità evento calcolata e costo; quantità a persona modificabile inline sulle bozze.</li>
+        <li><span class="file">lib/pdf/preventivoPdf.tsx</span>: corretto per usare la quantità evento (non quella a persona) nel totale mostrato al cliente — bug trovato durante l'implementazione, prima di qualunque uso reale.</li>
+      </ul>
+      <p class="soft">Migrazioni <code>0004</code> e <code>0005</code> create e <strong>applicate su Supabase</strong> (01/08/2026): feature attiva in produzione.</p>
+    </article>
+
+    <article class="card done">
+      <div class="card-head">
+        <span class="card-id">FEATURE-016</span>
+        <span class="badge done">Implementata — 01/08/2026</span>
+      </div>
+      <h3 class="card-title">Valore "corretto" del beveraggio inseribile a mano</h3>
+      <p>Richiesta iniziale poco chiara ("poter aggiungere bevande oltre ai litri proposti"): chiarita con l'utente come richiesta di poter <strong>inserire direttamente il valore finale ("corretto")</strong> di una categoria di beveraggio, invece di subire solo il calcolo automatico (correttivi rapidi → fattore di distribuzione → scalatura ospiti), tenendo il "teorico" come suggerimento di riferimento sempre visibile.</p>
+      <h4>Cosa è stato implementato</h4>
+      <ul class="plain">
+        <li><span class="file">lib/calc/beveraggio.ts</span>: <code>RigaBeveraggioInput.volumeCorrettoOverride</code> opzionale — se presente sostituisce l'intero output della pipeline per quella riga (il teorico resta comunque calcolato); alimenta anche colli/costo/scorta dei prodotti assegnati alla categoria.</li>
+        <li>Migrazione additiva <code>0003_beveraggio_correzione_manuale.sql</code>: colonna <code>volume_corretto_override</code> (nullable, check &gt;= 0) su <code>preventivo_beveraggio_riga</code> — applicata su Supabase.</li>
+        <li>Nuova <code>impostaCorrezioneBeveraggio</code> in <span class="file">lib/db/preventivi.ts</span>; l'override viaggia anche su duplicazione/revisione del preventivo.</li>
+        <li>UI in <span class="file">app/(app)/preventivi/[id]/page.tsx</span>: nella colonna "Corretto" (solo bozze) un campo precompilato col valore attuale + "Salva", e un link "torna al calcolo automatico" quando l'override è attivo (badge ✏️ manuale visibile anche a preventivo inviato).</li>
+        <li>5 nuovi test unitari (override sostituisce il corretto mantenendo il teorico, override alimenta colli/costo, nessuna regressione senza override, validazione valore negativo).</li>
+      </ul>
+      <p class="soft">Nessuna nuova categoria: restano le 10 della specifica/estensione BUG-001. L'override è per riga/categoria dell'intero preventivo (in bozza), non un prodotto o una voce libera fuori enum.</p>
+    </article>
+
+    <article class="card done">
+      <div class="card-head">
+        <span class="card-id">FEATURE-015</span>
+        <span class="badge done">Implementata — 01/08/2026</span>
+      </div>
+      <h3 class="card-title">Eliminazione preventivi in bozza</h3>
+      <p>Richiesta: poter cancellare un preventivo se non è ancora stato inviato/segnato come inviato.</p>
+      <h4>Cosa è stato implementato</h4>
+      <ul class="plain">
+        <li><code>eliminaPreventivo</code> in <span class="file">lib/db/preventivi.ts</span>: rifiuta se lo stato non è <code>bozza</code> (stessa guardia <code>verificaBozza</code> usata altrove).</li>
+        <li>Pulsante "Elimina bozza" nella pagina del preventivo, visibile solo per le bozze.</li>
+        <li>Righe ricetta/extra e beveraggio collegati si eliminano a cascata via i vincoli FK già esistenti (<code>on delete cascade</code>).</li>
+      </ul>
+      <div class="decision-box"><strong>Decisione presa (segnalata, non richiesta esplicita):</strong> è un <code>DELETE</code> fisico, non un soft delete con <code>deleted_at</code>. L'invariante 3 del CLAUDE.md elenca solo materie prime, ricette, clienti, bevande, attrezzature (dati anagrafici referenziati da storico); una bozza mai inviata non ha snapshot né storico da preservare, quindi non rientra in quell'invariante. Un preventivo già inviato resta comunque non cancellabile, coerente con l'invariante 1.</div>
+      <p class="soft">Nessuna conferma JS prima dell'eliminazione: nessun altro punto dell'app la usa (stesso pattern "form + bottone" di materie prime/ricette). Segnalato all'utente come possibile follow-up, non implementato senza richiesta esplicita.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">FEATURE-001</span><span class="badge dep">Dipende da: evento (fase 2)</span></div>
+      <h3 class="card-title">Storico clienti</h3>
+      <p>Realizzabile subito a metà: pagina <code>/clienti/[id]</code> con l'elenco dei <code>preventivo</code> per quel cliente (già disponibile via <code>preventivo.cliente_id</code>), stato, data, totale. La sezione "eventi" si aggiunge quando esisterà la tabella <code>evento</code>. Nessuna decisione di dominio aperta, solo sequenza.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">FEATURE-002</span><span class="badge dep">Dipende da: evento, attrezzature</span></div>
+      <h3 class="card-title">Analisi economica evento</h3>
+      <p><code>preventivo_riga.categoria_extra</code> (personale, trasferta, noleggio, consumabile, altro) più il food cost delle righe ricetta coprono già gran parte della ripartizione "attuale", senza nuove tabelle.</p>
+      <div class="decision-box"><strong>Da decidere:</strong> la percentuale personalizzabile per categoria è un target di riferimento da confrontare con l'attuale (come <code>margine_target_pct</code>), o una ripartizione manuale sostitutiva del calcolo? Consiglio la prima, coerente col pattern già in uso.</div>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">FEATURE-003</span><span class="badge dep">Dipende da: FEATURE-005, evento/menu</span></div>
+      <h3 class="card-title">Checklist attrezzatura automatica</h3>
+      <p>Serve prima l'anagrafica attrezzature (FEATURE-005) e una nuova tabella <code>ricetta_attrezzatura</code> sul modello di <code>ricetta_ingrediente</code> per legare ogni ricetta alle attrezzature richieste. Da fare dopo FEATURE-005.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">FEATURE-004</span><span class="badge dep">Parzialmente fattibile ora</span></div>
+      <h3 class="card-title">Lista della spesa automatica</h3>
+      <p>Già prevista in fase 4 della specifica — lo <code>sfrido_pct</code> è salvato apposta per questo. Il grafo ricette→materie prime esiste già (<code>caricaGrafoCalc</code>). Progetto: funzione pura in <code>/lib/calc/</code> che espande ricorsivamente le righe, somma per materia prima, converte in unità d'acquisto e arrotonda <strong>per eccesso</strong> (invariante 6). Su un singolo preventivo è fattibile subito; l'aggregazione su più preventivi di uno stesso evento attende <code>evento</code>.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">FEATURE-005</span><span class="badge dep">Fase 6 — fuori sequenza</span></div>
+      <h3 class="card-title">Gestione attrezzature</h3>
+      <p>CRUD semplice sul modello di materie prime/consumabili (nome, categoria, quantità disponibile, note; poi costo/valore dismissione/anni/eventi anno per la quota ammortamento; soft delete). Costruirla ora anticipa esplicitamente una fase successiva: conferma prima di procedere.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">FEATURE-006</span><span class="badge decision">Serve una scelta</span></div>
+      <h3 class="card-title">Invio Menu</h3>
+      <p>PDF: si riusa la pipeline già esistente in <code>/lib/pdf/</code> con un nuovo template menu (nessun prezzo da mostrare). Email: nessuna dipendenza di invio esiste nel progetto — l'unica mail attuale è quella di Supabase Auth per il recupero password, non riusabile per allegati liberi.</p>
+      <div class="decision-box"><strong>Da decidere:</strong> quale servizio email usare (es. Resend, API semplice e piano gratuito) prima di poter costruire questa parte.</div>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">FEATURE-007/008</span></div>
+      <h3 class="card-title">Categorie predefinite + struttura ad albero</h3>
+      <p>Oggi <code>materia_prima.categoria</code> è testo libero. Progetto: tabella <code>categoria_materia_prima</code> (id, nome, categoria_padre_id, ordine), popolata solo con le categorie di primo livello indicate (Carne, Pesce, Cereali, Verdure, Frutta, Latticini, Bevande, Spezie, Altro) — le sotto-categorie le crei tu dalla UI ad albero, coerente con "niente dati inventati nei seed". Migrazione: <code>categoria</code> testo → <code>categoria_id</code> FK, materie prime esistenti riassegnate manualmente o su "Altro" come default transitorio.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">FEATURE-009</span></div>
+      <h3 class="card-title">Marca prodotto</h3>
+      <p>Piccola e senza rischi: colonna additiva <code>marca text</code> su <code>materia_prima</code>, campo nel form, colonna in tabella.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">FEATURE-010</span></div>
+      <h3 class="card-title">Gestione confezioni (food cost sul pezzo)</h3>
+      <p>Verificato: il food cost sul singolo pezzo <strong>è già calcolato correttamente</strong> con <code>unita_acquisto = "conf"</code>, <code>unita_uso = "pz"</code> e <code>fattore_conversione</code> = pezzi per confezione. Il problema reale è di chiarezza, non di calcolo (si sovrappone a UX-001).</p>
+      <div class="decision-box"><strong>Da decidere:</strong> ti basta un'etichetta dinamica ("Quanti pezzi per confezione?"), o ti serve anche un campo puramente informativo <code>peso_totale_riferimento_g</code> (non entra nel calcolo)?</div>
+    </article>
+
+    <article class="card done">
+      <div class="card-head"><span class="card-id">FEATURE-011</span><span class="badge done">Gap piccolo e circoscritto</span></div>
+      <h3 class="card-title">Consumabili modificabili</h3>
+      <p><code>aggiornaConsumabile</code> esiste già in <span class="file">lib/db/consumabili.ts:51-60</span>: manca solo la pagina di modifica in UI (le materie prime hanno già <code>[id]/page.tsx</code>, i consumabili no). Fix meccanico: stessa pagina sul modello delle materie prime, più link "Modifica" in tabella. Nessun rischio di dominio.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">UX-001 / UX-002</span></div>
+      <h3 class="card-title">Chiarezza "Fattore di conversione" / "Resa"</h3>
+      <p>Esiste già una pagina guida (<code>/materie-prime/guida</code>) linkata dalla lista, ma non dal form, senza tooltip inline. Progetto: etichetta dinamica per il fattore di conversione secondo le unità scelte ("Quanti grammi in un kg?", "Quanti pezzi in una confezione?"); per la resa, rinominare in "Resa utilizzabile (%)" con esempio live ("su 1 kg acquistato, utilizzabili: X g"); link alla guida accanto ai campi, non solo dalla lista. Solo copy/UI, nessuno schema o calcolo toccato.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">UX-003</span></div>
+      <h3 class="card-title">Usabilità profilo beveraggio</h3>
+      <p>In parte è la stessa causa di BUG-002 (gestione unità non trasparente). Dopo il fix, propongo un testo esplicativo breve nella sezione beveraggio del preventivo e su <code>/profili-beveraggio</code>: "ogni categoria ha una quantità teorica a testa dal profilo; qui assegni un prodotto specifico per calcolarne il costo; puoi personalizzare quantità e correttivi solo per questo preventivo". Basso sforzo, alto impatto sulla confusione segnalata.</p>
+    </article>
+
+    <article class="card done">
+      <div class="card-head"><span class="card-id">FEATURE-012</span><span class="badge done">Già implementata</span></div>
+      <h3 class="card-title">Portata nelle ricette</h3>
+      <p><code>Ricetta.categoria_portata</code> esiste (antipasto/primo/secondo/contorno/dessert/finger/altro), il form di modifica ricetta ha già il menu a tendina (<span class="file">app/(app)/ricette/[id]/page.tsx:215</span>) e la lista ricette è già raggruppata per portata. Differenze rispetto alla richiesta: manca "Bevanda" (le bevande vivono nel modulo beveraggio separato) e l'etichetta è "Dessert", non "Dolce".</p>
+      <div class="decision-box"><strong>Da decidere:</strong> basta rinominare "Dessert"→"Dolce", o serve davvero una categoria "Bevanda" per ricette (es. cocktail/frappè di cucina, distinti dal beveraggio standard)?</div>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">FEATURE-013</span></div>
+      <h3 class="card-title">Menu organizzato automaticamente</h3>
+      <p>Il campo portata esiste, ma l'ordine delle righe menu oggi è manuale (<code>menu_riga.ordine</code>). Progetto: ordinamento automatico per <code>categoria_portata</code> nell'ordine richiesto, con <code>ordine</code> come sotto-ordinamento facoltativo dentro ogni gruppo. Nessuna migrazione necessaria. La voce "Bevande" non si applica con l'architettura attuale — stessa precisazione di FEATURE-012.</p>
+    </article>
+
+    <article class="card">
+      <div class="card-head"><span class="card-id">FEATURE-014</span><span class="badge decision">Decisioni commerciali</span></div>
+      <h3 class="card-title">Gestione IVA</h3>
+      <p>Tocca schema (aliquota per preventivo o default in <code>impostazioni</code>, coerente col pattern già in uso), calcolo puro in <code>/lib/calc/</code>, form preventivo, PDF, totali a schermo.</p>
+      <div class="decision-box"><strong>Da decidere:</strong> aliquota configurabile per preventivo o fissa in impostazioni? Margine target e prezzo suggerito restano calcolati al netto di IVA (IVA come partita di giro) — confermi questa lettura?</div>
+    </article>
+  </section>
+
+  <section class="priority">
+    <h2 class="group-title" style="border:none; padding:0; margin-bottom:0.8rem;">Priorità consigliate — aggiornate al 20/08/2026</h2>
+    <ol>
+      <li><strong>CL-1 + FEATURE-013</strong> — raggruppamento per categoria in preventivo, PDF e menu: stessa logica, nessuna migrazione, è ciò che il cliente vede per primo. <strong>Decisa, pronta.</strong> <span class="cx-eff">●●●○○ · ≈ 1–1,5 g</span></li>
+      <li><strong>CL-2 / FEATURE-007-008 + FEATURE-009</strong> — categorie materie prime, vista ad accordion, codice interno e marca: autonomi, nessuna dipendenza, risolvono un problema d'uso che peggiora man mano che l'anagrafica cresce. <span class="cx-eff">●●●○○ · ≈ 2–3 g</span></li>
+      <li><strong>CL-4 / FEATURE-004</strong> — lista della spesa dal singolo preventivo: la catena di calcolo che serve è già scritta e testata. <span class="cx-eff">●●●○○ · ≈ 2–3 g</span></li>
+      <li><strong>CL-3 / FEATURE-005</strong> — anagrafica attrezzature: scelta la scheda completa con ammortamento; sblocca CL-5. <span class="cx-eff">●●●●○ · ≈ 3–4 g</span></li>
+      <li><strong>CL-11</strong> — magazzino: più grosso, e una volta fatto migliora anche la lista spesa. <span class="cx-eff">●●●●○ · ≈ 4–5 g</span></li>
+      <li><strong>CL-5 / FEATURE-003</strong> — attrezzature per evento: dipende da CL-3 e richiede un modello nuovo (ricetta → attrezzatura). <span class="cx-eff">●●●●○ · ≈ 3–4 g</span></li>
+      <li><strong>CL-12</strong> — profili beverage: <strong>bloccata</strong> finché non arrivano le quattro risposte. <span class="cx-eff">●●●●● · ≈ 4–6 g</span></li>
+    </ol>
+    <p class="soft" style="margin-top:0.9rem;">In totale, <strong>circa 19–26 giornate</strong> di lavoro effettivo per l'intera checklist, CL-12 inclusa — a decisioni già prese: il tempo di attesa delle risposte non è conteggiato. Le prime quattro voci (≈ 8–11 giornate) valgono da sole la maggior parte del beneficio percepito.</p>
+    <p class="soft" style="margin-top:1rem;">Restano in coda i rimasugli piccoli già schedati: <strong>FEATURE-011</strong> (pagina di modifica consumabili — manca solo la UI, la funzione DB esiste), <strong>UX-001/002</strong> (chiarezza su fattore di conversione e resa) e la correzione della limitazione beveraggio documentata il 02/08. Sono interventi da mezza giornata che si possono infilare fra un punto e l'altro.</p>
+    <div class="warn"><strong>Debito da dichiarare al cliente, non da nascondere:</strong> questo ordine anticipa l'anagrafica attrezzature (fase 6) rispetto a clienti/eventi/pagamenti/agenda (fase 2), che <strong>non sono mai stati costruiti</strong>. I punti 4, 5 e 11 della checklist parlano tutti di "evento" — un'entità che nel gestionale oggi non esiste. Nell'immediato si lavora sul <strong>preventivo</strong> al posto dell'evento: funziona, ma è un rinvio, non una soluzione.</div>
+  </section>
+
+</div>
+
+
+

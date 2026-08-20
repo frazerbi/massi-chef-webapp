@@ -29,6 +29,7 @@ import type {
   PreventivoBeveraggioProdotto,
   PreventivoBeveraggioRiga,
   PreventivoRiga,
+  Ricetta,
   StatoPreventivo,
   TipoEvento,
 } from "./types";
@@ -691,24 +692,31 @@ export interface CalcoloPreventivo {
   materiePrime: MateriaPrima[];
   /** consumabili (incluse soft-deleted, referenziate da righe storiche) per la UI */
   consumabili: Consumabile[];
+  /** CL-1: ricette (incluse soft-deleted, referenziate da righe storiche) —
+   * servono la `categoria_portata` su cui la pagina e il PDF raggruppano le
+   * righe; non entrano in nessun calcolo di costo */
+  ricette: Ricetta[];
 }
 
 export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> {
   const dati = await preventivoCompleto(id);
   const { preventivo, righe, beveraggio, righeBeveraggio, prodottiBeveraggio } = dati;
   const supabase = await creaClientServer();
-  const [bevandeRes, materiePrimeRes, consumabiliRes] = await Promise.all([
+  const [bevandeRes, materiePrimeRes, consumabiliRes, ricetteRes] = await Promise.all([
     supabase.from("bevanda").select("*"),
     supabase.from("materia_prima").select("*"),
     supabase.from("consumabile").select("*"),
+    supabase.from("ricetta").select("*"),
   ]);
   if (bevandeRes.error) throw new Error(bevandeRes.error.message);
   if (materiePrimeRes.error) throw new Error(materiePrimeRes.error.message);
   if (consumabiliRes.error) throw new Error(consumabiliRes.error.message);
+  if (ricetteRes.error) throw new Error(ricetteRes.error.message);
   const bevande = (bevandeRes.data ?? []) as Bevanda[];
   const bevandePerId = new Map(bevande.map((b) => [b.id, b]));
   const materiePrime = (materiePrimeRes.data ?? []) as MateriaPrima[];
   const consumabili = (consumabiliRes.data ?? []) as Consumabile[];
+  const ricette = (ricetteRes.data ?? []) as Ricetta[];
 
   const eBozza = preventivo.stato === "bozza";
   const snapshot = preventivo.food_cost_snapshot;
@@ -891,6 +899,7 @@ export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> 
     bevande,
     materiePrime,
     consumabili,
+    ricette,
   };
 }
 
