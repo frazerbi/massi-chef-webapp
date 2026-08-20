@@ -11,8 +11,10 @@
  * Mappa riga → gruppo:
  *   ricetta        → la portata della ricetta (antipasto…altro); "altro" se
  *                    la portata non è disponibile
- *   consumabile    → "Apparecchiatura" o "Consumabili" secondo
- *                    `tipo_consumabile` dell'anagrafica (default consumabile)
+ *   consumabile    → "Consumabili apparecchio" o "Consumabili cucina" secondo
+ *                    `tipo_consumabile` dell'anagrafica (default consumabile).
+ *                    I valori dell'enum restano `apparecchiatura`/`consumabile`:
+ *                    qui cambia solo l'etichetta mostrata.
  *   materia_prima  → "Altri prodotti"
  *   extra          → "Servizi e altre voci", sempre in coda a tutti gli altri
  */
@@ -64,8 +66,8 @@ export const ETICHETTE_GRUPPO_PREVENTIVO: Record<ChiaveGruppoPreventivo, string>
   dessert: "Dessert",
   finger: "Finger food",
   altro: "Altre portate",
-  apparecchiatura: "Apparecchiatura",
-  consumabile: "Consumabili",
+  apparecchiatura: "Consumabili apparecchio",
+  consumabile: "Consumabili cucina",
   altri_prodotti: "Altri prodotti",
   servizi: "Servizi e altre voci",
 };

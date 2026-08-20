@@ -40,8 +40,8 @@ export default async function PaginaConsumabili() {
                   <td className={`${classiTd} font-medium`}>{c.nome}</td>
                   <td className={classiTd}>
                     {c.tipo_consumabile === "apparecchiatura"
-                      ? "Apparecchiatura"
-                      : "Consumabile"}
+                      ? "Apparecchio"
+                      : "Cucina"}
                   </td>
                   <td className={classiTd}>{c.categoria}</td>
                   <td className={classiTd}>
@@ -82,8 +82,8 @@ export default async function PaginaConsumabili() {
                 defaultValue="consumabile"
                 className={classiInput}
               >
-                <option value="consumabile">Consumabile</option>
-                <option value="apparecchiatura">Apparecchiatura</option>
+                <option value="consumabile">Consumabili cucina</option>
+                <option value="apparecchiatura">Consumabili apparecchio</option>
               </select>
             </Etichetta>
             <Etichetta testo="Categoria">
