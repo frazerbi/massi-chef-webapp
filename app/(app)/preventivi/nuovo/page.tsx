@@ -10,7 +10,13 @@ import { elencoMenu } from "@/lib/db/menu";
 import { elencoProfili } from "@/lib/db/profiliBeveraggio";
 import { azioneCreaPreventivo } from "../actions";
 
-export default async function PaginaNuovoPreventivo() {
+export default async function PaginaNuovoPreventivo({
+  searchParams,
+}: {
+  searchParams: Promise<{ menu_id?: string }>;
+}) {
+  // il link "Crea preventivo da questo menu" arriva dalla scheda del menu
+  const { menu_id: menuPreselezionato } = await searchParams;
   const [clienti, menu, profili] = await Promise.all([
     elencoClienti(),
     elencoMenu(),
@@ -57,7 +63,11 @@ export default async function PaginaNuovoPreventivo() {
             <input name="margine" required inputMode="decimal" placeholder="es. 30" className={classiInput} />
           </Etichetta>
           <Etichetta testo="Menu di partenza (opzionale, ne viene fatta una copia)">
-            <select name="menu_id" defaultValue="" className={classiInput}>
+            <select
+              name="menu_id"
+              defaultValue={menuPreselezionato ?? ""}
+              className={classiInput}
+            >
               <option value="">— nessuno</option>
               {menu.map((m) => (
                 <option key={m.id} value={m.id}>

@@ -12,6 +12,7 @@ import {
   TitoloPagina,
 } from "@/components/ui";
 import { formattaEuro } from "@/lib/calc/money";
+import { porzioniDisallineate } from "@/lib/calc/preventivo";
 import { raggruppaRighePreventivo } from "@/lib/calc/raggruppamentoPreventivo";
 import { elencoConsumabili } from "@/lib/db/consumabili";
 import { elencoMateriePrime } from "@/lib/db/materiePrime";
@@ -32,6 +33,7 @@ import {
   azioneAggiungiRigaExtra,
   azioneAggiungiRigaMateriaPrima,
   azioneAggiungiRigaRicetta,
+  azioneAllineaPorzioni,
   azioneCambiaStato,
   azioneDuplica,
   azioneEliminaPreventivo,
@@ -99,6 +101,14 @@ export default async function PaginaPreventivo({
   );
   const ospitiTotali =
     preventivo.numero_ospiti_adulti + preventivo.numero_ospiti_bambini;
+
+  // FEATURE-020: le porzioni delle righe ricetta restano manuali e non
+  // seguono il cambio ospiti: qui si contano solo per segnalarlo in pagina.
+  const righeRicettaDisallineate = righe.filter(
+    (r) =>
+      r.tipo_riga === "ricetta" &&
+      porzioniDisallineate(Number(r.quantita), ospitiTotali),
+  );
 
   const bevandePerCategoria = new Map<CategoriaBevanda, typeof bevande>();
   for (const b of bevande.filter((b) => !b.deleted_at)) {
@@ -234,6 +244,23 @@ export default async function PaginaPreventivo({
       {/* Righe */}
       <div className="mb-6">
         <Riquadro titolo="Righe del preventivo">
+          {eBozza && righeRicettaDisallineate.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <span>
+                {righeRicettaDisallineate.length === 1
+                  ? "1 riga ricetta ha un numero di porzioni diverso dagli ospiti"
+                  : `${righeRicettaDisallineate.length} righe ricetta hanno un numero di porzioni diverso dagli ospiti`}{" "}
+                ({ospitiTotali}). Può essere voluto: le porzioni restano quelle che
+                imposti tu.
+              </span>
+              <form action={azioneAllineaPorzioni}>
+                <input type="hidden" name="preventivo_id" value={preventivo.id} />
+                <button type="submit" className={classiBottoneSecondario}>
+                  Allinea tutte agli ospiti
+                </button>
+              </form>
+            </div>
+          )}
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px]">
               <thead className="border-b border-stone-200">
@@ -314,7 +341,35 @@ export default async function PaginaPreventivo({
                                 </p>
                               </>
                             ) : riga.tipo_riga === "ricetta" ? (
-                              `${Math.round(Number(riga.quantita) * 1000) / 1000} porzioni`
+                              <>
+                                {Math.round(Number(riga.quantita) * 1000) / 1000} porzioni
+                                {porzioniDisallineate(
+                                  Number(riga.quantita),
+                                  ospitiTotali,
+                                ) && (
+                                  // FEATURE-020: valore manuale, non si allinea da solo
+                                  <p className="text-xs text-amber-700">
+                                    porzioni: {Math.round(Number(riga.quantita) * 1000) / 1000} ·
+                                    ospiti: {ospitiTotali}
+                                    {eBozza && (
+                                      <form action={azioneAllineaPorzioni} className="inline">
+                                        <input
+                                          type="hidden"
+                                          name="preventivo_id"
+                                          value={preventivo.id}
+                                        />
+                                        <input type="hidden" name="riga_id" value={riga.id} />
+                                        <button
+                                          type="submit"
+                                          className="ml-2 underline underline-offset-2"
+                                        >
+                                          allinea agli ospiti
+                                        </button>
+                                      </form>
+                                    )}
+                                  </p>
+                                )}
+                              </>
                             ) : (
                               Math.round(Number(riga.quantita) * 1000) / 1000
                             )}
@@ -338,12 +393,17 @@ export default async function PaginaPreventivo({
                                 <input type="hidden" name="preventivo_id" value={preventivo.id} />
                                 <input type="hidden" name="riga_id" value={riga.id} />
                                 {riga.tipo_riga === "materia_prima" ||
-                                riga.tipo_riga === "consumabile" ? (
+                                riga.tipo_riga === "consumabile" ||
+                                riga.tipo_riga === "ricetta" ? (
                                   <input
                                     name="quantita"
                                     inputMode="decimal"
                                     defaultValue={String(riga.quantita)}
-                                    title="Quantità a persona"
+                                    title={
+                                      riga.tipo_riga === "ricetta"
+                                        ? "Porzioni"
+                                        : "Quantità a persona"
+                                    }
                                     className="w-20 rounded-md border border-stone-300 px-2 py-1 text-sm"
                                   />
                                 ) : (

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   calcolaTotaliPreventivo,
+  porzioniDisallineate,
   quantitaEventoConsumabile,
   quantitaEventoMateriaPrima,
 } from "@/lib/calc/preventivo";
@@ -178,5 +179,28 @@ describe("quantitaEventoConsumabile (§5 — FEATURE-018)", () => {
     expect(() => quantitaEventoConsumabile(-5, 10)).toThrow();
     expect(() => quantitaEventoConsumabile(10, 0)).toThrow();
     expect(() => quantitaEventoConsumabile(10, 1.5)).toThrow();
+  });
+});
+
+describe("porzioniDisallineate (FEATURE-020)", () => {
+  it("porzioni uguali agli ospiti: allineata", () => {
+    expect(porzioniDisallineate(30, 30)).toBe(false);
+  });
+
+  it("porzioni diverse dagli ospiti, in meno e in più", () => {
+    expect(porzioniDisallineate(30, 45)).toBe(true);
+    expect(porzioniDisallineate(60, 45)).toBe(true);
+  });
+
+  it("un solo ospite", () => {
+    expect(porzioniDisallineate(1, 1)).toBe(false);
+    expect(porzioniDisallineate(2, 1)).toBe(true);
+  });
+
+  it("lancia su porzioni o ospiti non validi", () => {
+    expect(() => porzioniDisallineate(0, 10)).toThrow();
+    expect(() => porzioniDisallineate(-3, 10)).toThrow();
+    expect(() => porzioniDisallineate(10, 0)).toThrow();
+    expect(() => porzioniDisallineate(10, 2.5)).toThrow();
   });
 });

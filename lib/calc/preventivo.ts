@@ -135,3 +135,24 @@ export function calcolaTotaliPreventivo(
     foodCostPct: prezzoTotale > 0 ? (foodCost / prezzoTotale) * 100 : null,
   };
 }
+
+/**
+ * FEATURE-020 — le righe ricetta portano una quantità di porzioni salvata a
+ * mano (copiata dal menu o inserita a mano), che NON scala da sola con gli
+ * ospiti: è voluto, perché di una portata si possono voler fare meno porzioni
+ * degli ospiti presenti. Questa funzione dice solo se la riga si è scostata
+ * dal numero di ospiti, così la UI può segnalarlo e offrire l'allineamento:
+ * non cambia nessun valore e non entra in nessun calcolo di costo.
+ */
+export function porzioniDisallineate(
+  porzioni: number,
+  ospitiTotali: number,
+): boolean {
+  if (!Number.isFinite(porzioni) || porzioni <= 0) {
+    throw new Error(`Porzioni non valide: ${porzioni}`);
+  }
+  if (!Number.isInteger(ospitiTotali) || ospitiTotali <= 0) {
+    throw new Error(`Ospiti totali non validi: ${ospitiTotali}`);
+  }
+  return porzioni !== ospitiTotali;
+}

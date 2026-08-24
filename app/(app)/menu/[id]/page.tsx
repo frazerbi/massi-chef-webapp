@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import Link from "next/link";
 import {
   classiBottone,
   classiBottoneSecondario,
@@ -117,6 +118,9 @@ export default async function PaginaDettaglioMenu({
   return (
     <>
       <TitoloPagina titolo={menu.nome} sottotitolo={menu.descrizione ?? undefined}>
+        <Link href={`/preventivi/nuovo?menu_id=${menu.id}`} className={classiBottone}>
+          Crea preventivo da questo menu
+        </Link>
         <form action={azioneEliminaMenu}>
           <input type="hidden" name="id" value={menu.id} />
           <button type="submit" className={classiBottoneSecondario}>

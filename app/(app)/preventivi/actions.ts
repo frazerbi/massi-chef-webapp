@@ -10,6 +10,7 @@ import {
   aggiornaPreventivo,
   aggiornaRiga,
   aggiornaQuotaProdottoBeveraggio,
+  allineaPorzioniAOspiti,
   aggiungiProdottoBeveraggio,
   aggiungiRigaConsumabile,
   aggiungiRigaExtra,
@@ -135,6 +136,15 @@ export async function azioneAggiungiRigaExtra(formData: FormData): Promise<void>
     parseEuroCent(formData.get("costo"), "costo unitario"),
     prezzo ? parseEuroCent(prezzo, "prezzo unitario") : null,
   );
+  revalidatePath(`/preventivi/${preventivoId}`);
+}
+
+/** FEATURE-020: riporta le porzioni delle righe ricetta al numero di ospiti,
+ * per una sola riga (campo `riga_id`) o per tutte se assente. */
+export async function azioneAllineaPorzioni(formData: FormData): Promise<void> {
+  const preventivoId = parseTesto(formData.get("preventivo_id"), "preventivo");
+  const rigaId = parseTestoOpzionale(formData.get("riga_id"));
+  await allineaPorzioniAOspiti(preventivoId, rigaId ?? undefined);
   revalidatePath(`/preventivi/${preventivoId}`);
 }
 

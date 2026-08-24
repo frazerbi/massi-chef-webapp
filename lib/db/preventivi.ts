@@ -452,6 +452,52 @@ export async function aggiornaRiga(
   if (erroreUpdate) throw new Error(`Aggiornamento riga fallito: ${erroreUpdate.message}`);
 }
 
+/**
+ * FEATURE-020 — riporta le porzioni delle righe ricetta al numero di ospiti
+ * del preventivo. Le righe ricetta nascono con le porzioni copiate dal menu
+ * (o inserite a mano) e restano manuali: se dopo si cambia il numero di
+ * ospiti non seguono da sole (a differenza delle righe materia prima e
+ * consumabile, che sono "a persona" e si ricalcolano live). Questa funzione è
+ * l'allineamento esplicito, per una sola riga (`rigaId`) o per tutte.
+ * Ritorna il numero di righe effettivamente modificate.
+ */
+export async function allineaPorzioniAOspiti(
+  preventivoId: string,
+  rigaId?: string,
+): Promise<number> {
+  const preventivo = await verificaBozza(preventivoId);
+  const ospitiTotali =
+    preventivo.numero_ospiti_adulti + preventivo.numero_ospiti_bambini;
+  if (ospitiTotali <= 0) throw new Error("Il preventivo non ha ospiti");
+
+  const supabase = await creaClientServer();
+  let query = supabase
+    .from("preventivo_riga")
+    .select("id, quantita")
+    .eq("preventivo_id", preventivoId)
+    .eq("tipo_riga", "ricetta");
+  if (rigaId) query = query.eq("id", rigaId);
+  const { data, error } = await query;
+  if (error) throw new Error(`Righe non trovate: ${error.message}`);
+
+  const daAllineare = (data ?? []).filter(
+    (r) => Number(r.quantita) !== ospitiTotali,
+  );
+  if (daAllineare.length === 0) return 0;
+
+  const { error: erroreUpdate } = await supabase
+    .from("preventivo_riga")
+    .update({ quantita: ospitiTotali })
+    .in(
+      "id",
+      daAllineare.map((r) => r.id as string),
+    );
+  if (erroreUpdate) {
+    throw new Error(`Allineamento porzioni fallito: ${erroreUpdate.message}`);
+  }
+  return daAllineare.length;
+}
+
 export async function rimuoviRiga(rigaId: string): Promise<void> {
   const supabase = await creaClientServer();
   const { data, error } = await supabase
