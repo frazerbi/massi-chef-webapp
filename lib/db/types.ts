@@ -70,6 +70,17 @@ export const ETICHETTE_PORTATA: Record<CategoriaPortata, string> = {
   altro: "Altro",
 };
 
+/**
+ * FEATURE-009 / 24-08-2026: etichetta interna di una materia prima, con la marca
+ * quando c'e'. Serve a distinguere due prodotti omonimi di marca diversa (es.
+ * "Pomodoro pelati" Mutti e Cirio) nelle tendine e nelle tabelle di lavoro.
+ * NON va usata nei documenti per il cliente (PDF): li' resta il solo nome.
+ */
+export function etichettaMateriaPrima(mp: { nome: string; marca?: string | null }): string {
+  const marca = mp.marca?.trim();
+  return marca ? `${mp.nome} — ${marca}` : mp.nome;
+}
+
 export const ALLERGENI_UE = [
   "glutine",
   "crostacei",

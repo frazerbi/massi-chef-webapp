@@ -13,7 +13,7 @@ export default async function PaginaModificaMateriaPrima({
 
   return (
     <>
-      <TitoloPagina titolo={materiaPrima.nome}>
+      <TitoloPagina titolo={materiaPrima.nome} sottotitolo={materiaPrima.marca ?? undefined}>
         <form action={azioneEliminaMateriaPrima}>
           <input type="hidden" name="id" value={materiaPrima.id} />
           <button type="submit" className={classiBottoneSecondario}>

@@ -17,7 +17,7 @@ import { elencoConsumabili } from "@/lib/db/consumabili";
 import { elencoMateriePrime } from "@/lib/db/materiePrime";
 import { menuPerId, righeDiMenu } from "@/lib/db/menu";
 import { caricaGrafoCalc } from "@/lib/db/ricette";
-import { ETICHETTE_PORTATA } from "@/lib/db/types";
+import { ETICHETTE_PORTATA, etichettaMateriaPrima } from "@/lib/db/types";
 import {
   azioneAggiungiConsumabileAMenu,
   azioneAggiungiMateriaPrimaAMenu,
@@ -152,7 +152,10 @@ export default async function PaginaDettaglioMenu({
                   <tr key={riga.id}>
                     <td className={classiTd}>{riga.ordine}</td>
                     <td className={`${classiTd} font-medium`}>
-                      {ricetta?.nome ?? materiaPrima?.nome ?? consumabile?.nome ?? "—"}
+                      {ricetta?.nome ??
+                        (materiaPrima ? etichettaMateriaPrima(materiaPrima) : undefined) ??
+                        consumabile?.nome ??
+                        "—"}
                       {materiaPrima && (
                         <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs font-normal">
                           materia prima
@@ -248,7 +251,7 @@ export default async function PaginaDettaglioMenu({
               <select name="materia_prima_id" required className={classiInput}>
                 {materiePrime.map((mp) => (
                   <option key={mp.id} value={mp.id}>
-                    {mp.nome} ({mp.unita_uso})
+                    {etichettaMateriaPrima(mp)} ({mp.unita_uso})
                   </option>
                 ))}
               </select>

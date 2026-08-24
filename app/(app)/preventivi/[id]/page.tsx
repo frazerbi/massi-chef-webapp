@@ -19,6 +19,7 @@ import { calcolaPreventivo } from "@/lib/db/preventivi";
 import { elencoRicette } from "@/lib/db/ricette";
 import {
   ETICHETTE_CATEGORIA_BEVANDA,
+  etichettaMateriaPrima,
   type CategoriaBevanda,
 } from "@/lib/db/types";
 import {
@@ -280,6 +281,12 @@ export default async function PaginaPreventivo({
                                 materia prima
                               </span>
                             )}
+                            {materiaPrima?.marca ? (
+                              // FEATURE-009: solo uso interno, il PDF cliente resta col solo nome
+                              <p className="text-xs font-normal text-stone-400">
+                                {materiaPrima.marca}
+                              </p>
+                            ) : null}
                             {riga.tipo_riga === "consumabile" && (
                               <span className="ml-2 rounded bg-stone-100 px-1.5 py-0.5 text-xs">
                                 consumabile
@@ -429,7 +436,7 @@ export default async function PaginaPreventivo({
                   <select name="materia_prima_id" required className={classiInput}>
                     {materiePrimeAttive.map((mp) => (
                       <option key={mp.id} value={mp.id}>
-                        {mp.nome} ({mp.unita_uso})
+                        {etichettaMateriaPrima(mp)} ({mp.unita_uso})
                       </option>
                     ))}
                   </select>

@@ -11,7 +11,7 @@ import {
 import { formattaEuro } from "@/lib/calc/money";
 import { allergeniRicetta, costoPorzioneCent } from "@/lib/calc/ricetta";
 import { caricaGrafoCalc, ingredientiDiRicetta, ricettaPerId } from "@/lib/db/ricette";
-import { ETICHETTE_PORTATA } from "@/lib/db/types";
+import { ETICHETTE_PORTATA, etichettaMateriaPrima } from "@/lib/db/types";
 import {
   azioneAggiornaRicetta,
   azioneAggiungiIngrediente,
@@ -114,7 +114,7 @@ export default async function PaginaRicetta({
                   <tr key={ing.id}>
                     <td className={classiTd}>
                       {mp
-                        ? mp.nome
+                        ? etichettaMateriaPrima(mp)
                         : `↳ ${nomiRicette.get(ing.sotto_ricetta_id!) ?? "sotto-ricetta"} (sotto-ricetta)`}
                     </td>
                     <td className={classiTd}>
@@ -153,7 +153,7 @@ export default async function PaginaRicetta({
                 <select name="materia_prima_id" required className={classiInput}>
                   {materiePrimeAttive.map((mp) => (
                     <option key={mp.id} value={mp.id}>
-                      {mp.nome} ({mp.unita_uso})
+                      {etichettaMateriaPrima(mp)} ({mp.unita_uso})
                     </option>
                   ))}
                 </select>
