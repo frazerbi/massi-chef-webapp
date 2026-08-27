@@ -1076,7 +1076,10 @@ export default async function PaginaPreventivo({
                 className={classiInput}
               />
             </Etichetta>
-            <Etichetta testo="Prezzo totale proposto al lordo dello sconto (€, vuoto = somma righe)">
+            <Etichetta
+              testo="Prezzo totale proposto al lordo dello sconto (€, vuoto = somma righe)"
+              aiuto="Lasciandolo vuoto il prezzo è la somma dei prezzi delle righe. Se lo scrivi a mano, si intende PRIMA dello sconto: l'eventuale sconto viene tolto da questo importo."
+            >
               <input
                 name="prezzo_totale"
                 inputMode="decimal"
@@ -1086,7 +1089,16 @@ export default async function PaginaPreventivo({
             </Etichetta>
             {/* FEATURE-021: sconto commerciale in % sul prezzo proposto */}
             <div className="grid gap-4 sm:grid-cols-2">
-              <Etichetta testo="Sconto (%, 0 = nessuno)">
+              <Etichetta
+                testo="Sconto (%, 0 = nessuno)"
+                aiuto={
+                  "Sconto commerciale sul prezzo finale (es. 20 per lo sconto amico). " +
+                  "Si applica al totale — somma delle righe o prezzo scritto a mano — e si " +
+                  "ricalcola da solo ogni volta che cambi righe, ospiti o beveraggio. " +
+                  "Non tocca i costi: riduce prezzo, utile e margine. Sul PDF il cliente " +
+                  "vede totale, sconto e totale scontato."
+                }
+              >
                 <input
                   name="sconto_pct"
                   inputMode="decimal"
@@ -1094,7 +1106,10 @@ export default async function PaginaPreventivo({
                   className={classiInput}
                 />
               </Etichetta>
-              <Etichetta testo="Motivo dello sconto (sul PDF)">
+              <Etichetta
+                testo="Motivo dello sconto (sul PDF)"
+                aiuto="Etichetta mostrata al cliente accanto allo sconto sul PDF. Se la lasci vuota compare solo «Sconto»."
+              >
                 <input
                   name="sconto_descrizione"
                   placeholder="es. Sconto amico"
@@ -1104,9 +1119,8 @@ export default async function PaginaPreventivo({
               </Etichetta>
             </div>
             <p className="text-xs text-stone-500">
-              Lo sconto si applica al totale (somma delle righe o prezzo
-              impostato a mano) e si ricalcola da solo a ogni modifica: non
-              tocca i costi, ma riduce utile e margine effettivo.
+              Lo sconto si applica al totale e si ricalcola da solo a ogni
+              modifica: non tocca i costi, ma riduce utile e margine effettivo.
             </p>
             <Etichetta testo="Note per il cliente (sul PDF)">
               <textarea

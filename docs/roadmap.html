@@ -765,7 +765,7 @@
         <li><span class="file">app/(app)/page.tsx</span> e <span class="file">app/(app)/preventivi/page.tsx</span>: gli elenchi mostrano il prezzo netto, non il lordo congelato.</li>
         <li>9 nuovi test in <span class="file">tests/calc/preventivo.test.ts</span>: sconto 0 identico al comportamento precedente, sconto 20%, sconto sul totale manuale, prezzo manuale senza sconto, arrotondamenti dispari, prezzo azzerato, input fuori range.</li>
       </ul>
-      <p class="soft">Migrazione <code>0010</code> creata ma <strong>non ancora applicata su Supabase</strong>: va incollata nel SQL Editor prima di usare la feature in produzione.</p>
+      <p class="soft">Migrazione <code>0010</code> <strong>applicata su Supabase</strong> il 27/08/2026 via SQL Editor. Lo sconto &egrave; spiegato da un tooltip sui campi &laquo;Sconto (%)&raquo;, &laquo;Motivo dello sconto&raquo; e &laquo;Prezzo totale proposto&raquo; (componente <code>Aiuto</code> in <span class="file">components/ui.tsx</span>, riusabile ovunque con la prop <code>aiuto</code> di <code>Etichetta</code>) e da una sezione del <span class="file">README.md</span>.</p>
     </article>
 
     <article class="card done">

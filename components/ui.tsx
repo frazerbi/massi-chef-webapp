@@ -46,16 +46,40 @@ export function Riquadro({
   );
 }
 
+/**
+ * Tooltip: "?" accanto a un'etichetta, con la spiegazione nell'attributo
+ * `title` nativo del browser. Nessuna libreria e nessun JS, quindi funziona
+ * anche nei server component; `aria-label` e `tabIndex` lo rendono
+ * raggiungibile da tastiera e screen reader.
+ */
+export function Aiuto({ testo }: { testo: string }) {
+  return (
+    <span
+      title={testo}
+      aria-label={testo}
+      role="note"
+      tabIndex={0}
+      className="ml-1 inline-flex h-4 w-4 cursor-help select-none items-center justify-center rounded-full border border-stone-300 align-middle text-[10px] font-semibold text-stone-500"
+    >
+      ?
+    </span>
+  );
+}
+
 export function Etichetta({
   testo,
+  aiuto,
   children,
 }: {
   testo: string;
+  /** testo del tooltip mostrato dal "?" accanto all'etichetta */
+  aiuto?: string;
   children: ReactNode;
 }) {
   return (
     <label className="block text-sm">
       <span className="font-medium">{testo}</span>
+      {aiuto && <Aiuto testo={aiuto} />}
       {children}
     </label>
   );

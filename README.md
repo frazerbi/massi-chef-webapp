@@ -53,6 +53,20 @@ Il campo che genera più dubbi in fase di inserimento è `fattore_conversione`. 
 - **Non confondere con la resa**: lo scarto di lavorazione (es. pulizia del pesce) è un campo separato, `resa_percentuale`, applicato dopo nella stessa formula.
 - **Vincolo**: deve essere sempre `> 0` (`unita_acquisto` e `unita_uso` devono restare dimensionalmente coerenti — mai conversioni implicite peso↔volume, invariante §4 di `CLAUDE.md`).
 
+## Sconto sul preventivo
+
+Lo sconto è una **percentuale sul preventivo**, non una riga: si imposta in *Preventivi → (preventivo) → Dati del preventivo*, nei campi **Sconto (%)** e **Motivo dello sconto**. Vale solo finché il preventivo è in bozza, come tutti gli altri dati.
+
+- **Su cosa si applica**: sul totale proposto, cioè la somma dei prezzi delle righe — oppure, se hai scritto a mano il *Prezzo totale proposto*, su quell'importo. Il prezzo scritto a mano si intende sempre **al lordo**, prima dello sconto.
+- **Si ricalcola da solo**: cambi le righe, gli ospiti o il beveraggio e lo sconto si riadatta, perché è una percentuale e non un importo fisso. Non c'è niente da riscrivere a mano.
+- **Non tocca i costi**: food cost, costo extra e costo totale restano quelli. Cambiano prezzo finale, **utile** e **margine effettivo**, che sono calcolati sul prezzo davvero proposto al cliente.
+- **Il *prezzo suggerito* resta al lordo**: è il prezzo da cui *partire* (`costo_totale / (1 − margine target)`), quindi non segue lo sconto — serve proprio a vedere quanto ti stai scostando.
+- **Cosa vede il cliente**: se lo sconto è > 0, il PDF stampa `Totale ... / Sconto amico (20%): -... / Totale proposto ...`. Con sconto a 0 il PDF è identico a prima.
+
+Esempio: righe per 1.500 €, sconto 20% → il cliente vede 1.200 €; se il costo totale è 700 €, l'utile passa da 800 € a 500 € e il margine effettivo da 53,3% a 41,7%.
+
+> Nelle voci extra **non** esiste più la categoria "Sconto": una riga extra può solo aggiungere importo (costo e prezzo non possono essere negativi), quindi aumentava il totale invece di ridurlo. Usa il campo percentuale.
+
 ## Limitazioni note
 
 ### Beveraggio: aggiungere più prodotti nella stessa categoria
