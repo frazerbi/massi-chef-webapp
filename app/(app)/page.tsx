@@ -4,6 +4,7 @@ import { elencoPreventivi } from "@/lib/db/preventivi";
 import { elencoRicette } from "@/lib/db/ricette";
 import { Riquadro, TitoloPagina } from "@/components/ui";
 import { formattaEuro } from "@/lib/calc/money";
+import { prezzoScontatoCent } from "@/lib/calc/preventivo";
 
 export default async function Dashboard() {
   const [materiePrime, ricette, preventivi] = await Promise.all([
@@ -72,7 +73,12 @@ export default async function Dashboard() {
                     <span className="text-stone-500">
                       {p.stato}
                       {p.prezzo_totale_cent != null &&
-                        ` · ${formattaEuro(p.prezzo_totale_cent)}`}
+                        ` · ${formattaEuro(
+                          prezzoScontatoCent(
+                            p.prezzo_totale_cent,
+                            Number(p.sconto_pct ?? 0),
+                          ),
+                        )}`}
                     </span>
                   </Link>
                 </li>

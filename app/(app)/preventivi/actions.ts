@@ -79,6 +79,9 @@ export async function azioneAggiornaPreventivo(formData: FormData): Promise<void
     prezzo_totale_cent: prezzoTotale
       ? parseEuroCent(prezzoTotale, "prezzo totale")
       : null,
+    // FEATURE-021: sconto commerciale sul prezzo proposto (vuoto = nessuno)
+    sconto_pct: parseNumeroOpzionale(formData.get("sconto_pct")) ?? 0,
+    sconto_descrizione: parseTestoOpzionale(formData.get("sconto_descrizione")),
     validita_giorni: parseNumero(formData.get("validita"), "validità"),
     note_cliente: parseTestoOpzionale(formData.get("note_cliente")),
     condizioni: parseTestoOpzionale(formData.get("condizioni")),

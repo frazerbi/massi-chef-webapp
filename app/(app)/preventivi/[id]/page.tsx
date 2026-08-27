@@ -221,15 +221,22 @@ export default async function PaginaPreventivo({
         </Riquadro>
         <Riquadro titolo="Prezzo proposto">
           <p className="text-2xl font-semibold">
-            {preventivo.prezzo_totale_cent != null
-              ? formattaEuro(preventivo.prezzo_totale_cent)
-              : formattaEuro(totali.prezzoTotaleCent)}
+            {formattaEuro(totali.prezzoTotaleCent)}
           </p>
           <p className="text-sm text-stone-500">
             {preventivo.prezzo_totale_cent != null
               ? "impostato a mano"
               : "somma dei prezzi riga"}
           </p>
+          {/* FEATURE-021: lo sconto si applica al lordo e si ricalcola da solo
+              a ogni modifica delle righe */}
+          {totali.scontoCent > 0 && (
+            <p className="mt-1 text-sm text-emerald-700">
+              lordo {formattaEuro(totali.prezzoLordoCent)} − sconto{" "}
+              {Number(preventivo.sconto_pct)}% ({formattaEuro(totali.scontoCent)})
+              {preventivo.sconto_descrizione ? ` · ${preventivo.sconto_descrizione}` : ""}
+            </p>
+          )}
         </Riquadro>
         <Riquadro titolo="Utile e margine">
           <p className="text-2xl font-semibold">{formattaEuro(totali.utileCent)}</p>
@@ -555,7 +562,11 @@ export default async function PaginaPreventivo({
                     <option value="trasferta">Trasferta</option>
                     <option value="noleggio">Noleggio</option>
                     <option value="consumabile">Consumabili</option>
-                    <option value="sconto">Sconto</option>
+                    {/* FEATURE-021: niente più "Sconto" qui — una riga extra può
+                        solo AGGIUNGERE importo (costo e prezzo sono >= 0), quindi
+                        aumentava il totale invece di ridurlo. Lo sconto ora è la
+                        percentuale nei dati del preventivo. Il valore enum resta
+                        nel DB per le righe già inserite. */}
                     <option value="altro">Altro</option>
                   </select>
                 </Etichetta>
@@ -1065,7 +1076,7 @@ export default async function PaginaPreventivo({
                 className={classiInput}
               />
             </Etichetta>
-            <Etichetta testo="Prezzo totale proposto (€, vuoto = somma righe)">
+            <Etichetta testo="Prezzo totale proposto al lordo dello sconto (€, vuoto = somma righe)">
               <input
                 name="prezzo_totale"
                 inputMode="decimal"
@@ -1073,6 +1084,30 @@ export default async function PaginaPreventivo({
                 className={classiInput}
               />
             </Etichetta>
+            {/* FEATURE-021: sconto commerciale in % sul prezzo proposto */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Etichetta testo="Sconto (%, 0 = nessuno)">
+                <input
+                  name="sconto_pct"
+                  inputMode="decimal"
+                  defaultValue={String(Number(preventivo.sconto_pct))}
+                  className={classiInput}
+                />
+              </Etichetta>
+              <Etichetta testo="Motivo dello sconto (sul PDF)">
+                <input
+                  name="sconto_descrizione"
+                  placeholder="es. Sconto amico"
+                  defaultValue={preventivo.sconto_descrizione ?? ""}
+                  className={classiInput}
+                />
+              </Etichetta>
+            </div>
+            <p className="text-xs text-stone-500">
+              Lo sconto si applica al totale (somma delle righe o prezzo
+              impostato a mano) e si ricalcola da solo a ogni modifica: non
+              tocca i costi, ma riduce utile e margine effettivo.
+            </p>
             <Etichetta testo="Note per il cliente (sul PDF)">
               <textarea
                 name="note_cliente"

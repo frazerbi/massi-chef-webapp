@@ -5,6 +5,10 @@
  * food_cost        = Σ costo righe ricette (+ beveraggio, che entra nel costo)
  * costo_totale     = food_cost + costo_extra
  * prezzo_suggerito = costo_totale / (1 − margine_target_pct/100)
+ * prezzo_lordo     = Σ prezzi riga (+ beveraggio), oppure il totale imposto a mano
+ * sconto           = prezzo_lordo × sconto_pct/100                  [FEATURE-021]
+ * prezzo_totale    = prezzo_lordo − sconto
+ * utile            = prezzo_totale − costo_totale
  */
 
 import { arrotondaCentesimi } from "./money";
@@ -62,6 +66,37 @@ export function quantitaEventoConsumabile(
   return quantitaPersona * ospitiTotali;
 }
 
+/**
+ * FEATURE-021 — sconto commerciale in percentuale sul prezzo proposto.
+ * Non tocca i costi: riduce solo il prezzo al cliente (e quindi utile e
+ * margine effettivo). Arrotondamento a centesimi interi qui, non in
+ * presentazione, così che lordo − sconto = netto sia esatto ovunque.
+ */
+export function scontoSuPrezzoCent(
+  prezzoLordoCent: number,
+  scontoPct: number,
+): number {
+  if (!Number.isFinite(prezzoLordoCent) || prezzoLordoCent < 0) {
+    throw new Error(`Prezzo lordo non valido: ${prezzoLordoCent}`);
+  }
+  if (!Number.isFinite(scontoPct) || scontoPct < 0 || scontoPct >= 100) {
+    throw new Error(`Sconto non valido (0–99,99): ${scontoPct}`);
+  }
+  return arrotondaCentesimi((prezzoLordoCent * scontoPct) / 100);
+}
+
+/** FEATURE-021 — prezzo netto dopo lo sconto: usato anche dagli elenchi, che
+ * hanno il preventivo ma non il calcolo completo delle righe. */
+export function prezzoScontatoCent(
+  prezzoLordoCent: number,
+  scontoPct: number,
+): number {
+  return (
+    arrotondaCentesimi(prezzoLordoCent) -
+    scontoSuPrezzoCent(prezzoLordoCent, scontoPct)
+  );
+}
+
 export interface TotaliPreventivoInput {
   righe: RigaPreventivoCalc[];
   /** costo del beveraggio calcolato da §5.11 (0 se disattivato) */
@@ -69,6 +104,11 @@ export interface TotaliPreventivoInput {
   /** prezzo del beveraggio proposto al cliente (0 se incluso altrove) */
   prezzoBeveraggioCent: number;
   margineTargetPct: number;
+  /** FEATURE-021: prezzo proposto imposto a mano, AL LORDO dello sconto;
+   * null/assente = somma dei prezzi riga */
+  prezzoTotaleManualeCent?: number | null;
+  /** FEATURE-021: sconto commerciale in % (0 = nessuno) */
+  scontoPct?: number;
 }
 
 export interface TotaliPreventivo {
@@ -76,7 +116,12 @@ export interface TotaliPreventivo {
   costoExtraCent: number;
   costoTotaleCent: number;
   prezzoSuggeritoCent: number;
-  /** somma dei prezzi riga + beveraggio: il prezzo effettivamente proposto */
+  /** somma dei prezzi riga + beveraggio (o il totale imposto a mano), PRIMA
+   * dello sconto */
+  prezzoLordoCent: number;
+  /** FEATURE-021: importo dello sconto applicato (0 se nessuno sconto) */
+  scontoCent: number;
+  /** prezzo effettivamente proposto al cliente, al netto dello sconto */
   prezzoTotaleCent: number;
   utileCent: number;
   margineEffettivoPct: number | null;
@@ -86,8 +131,14 @@ export interface TotaliPreventivo {
 export function calcolaTotaliPreventivo(
   input: TotaliPreventivoInput,
 ): TotaliPreventivo {
-  const { righe, costoBeveraggioCent, prezzoBeveraggioCent, margineTargetPct } =
-    input;
+  const {
+    righe,
+    costoBeveraggioCent,
+    prezzoBeveraggioCent,
+    margineTargetPct,
+    prezzoTotaleManualeCent,
+    scontoPct = 0,
+  } = input;
   if (
     !Number.isFinite(margineTargetPct) ||
     margineTargetPct < 0 ||
@@ -97,6 +148,9 @@ export function calcolaTotaliPreventivo(
   }
   if (costoBeveraggioCent < 0) {
     throw new Error(`Costo beveraggio negativo: ${costoBeveraggioCent}`);
+  }
+  if (prezzoTotaleManualeCent != null && prezzoTotaleManualeCent < 0) {
+    throw new Error(`Prezzo totale manuale negativo: ${prezzoTotaleManualeCent}`);
   }
 
   let foodCost = costoBeveraggioCent;
@@ -121,18 +175,27 @@ export function calcolaTotaliPreventivo(
 
   const costoTotale = foodCost + costoExtra;
   const prezzoSuggerito = costoTotale / (1 - margineTargetPct / 100);
-  const utile = prezzoTotale - costoTotale;
+  // il totale imposto a mano sostituisce la somma delle righe ed è anch'esso
+  // un LORDO: lo sconto si applica in entrambi i casi allo stesso modo
+  const prezzoLordoCent = arrotondaCentesimi(prezzoTotaleManualeCent ?? prezzoTotale);
+  const scontoCent = scontoSuPrezzoCent(prezzoLordoCent, scontoPct);
+  const prezzoNettoCent = prezzoLordoCent - scontoCent;
+  const utile = prezzoNettoCent - costoTotale;
 
   return {
     foodCostCent: arrotondaCentesimi(foodCost),
     costoExtraCent: arrotondaCentesimi(costoExtra),
     costoTotaleCent: arrotondaCentesimi(costoTotale),
     prezzoSuggeritoCent: arrotondaCentesimi(prezzoSuggerito),
-    prezzoTotaleCent: arrotondaCentesimi(prezzoTotale),
+    prezzoLordoCent,
+    scontoCent,
+    prezzoTotaleCent: prezzoNettoCent,
     utileCent: arrotondaCentesimi(utile),
     margineEffettivoPct:
-      prezzoTotale > 0 ? ((prezzoTotale - costoTotale) / prezzoTotale) * 100 : null,
-    foodCostPct: prezzoTotale > 0 ? (foodCost / prezzoTotale) * 100 : null,
+      prezzoNettoCent > 0
+        ? ((prezzoNettoCent - costoTotale) / prezzoNettoCent) * 100
+        : null,
+    foodCostPct: prezzoNettoCent > 0 ? (foodCost / prezzoNettoCent) * 100 : null,
   };
 }
 

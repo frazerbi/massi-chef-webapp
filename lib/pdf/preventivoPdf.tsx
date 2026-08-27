@@ -133,7 +133,9 @@ function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
   const { preventivo, cliente, righe, beveraggio: configBev } = dati;
   const ospitiTotali =
     preventivo.numero_ospiti_adulti + preventivo.numero_ospiti_bambini;
-  const prezzoFinaleCent = preventivo.prezzo_totale_cent ?? totali.prezzoTotaleCent;
+  // FEATURE-021: prezzoTotaleCent è già al netto dello sconto e tiene conto
+  // del totale imposto a mano (che si intende al lordo)
+  const prezzoFinaleCent = totali.prezzoTotaleCent;
   const materiePrimePerId = new Map(materiePrime.map((mp) => [mp.id, mp]));
   const consumabiliPerId = new Map(consumabili.map((c) => [c.id, c]));
   const ricettePerId = new Map(ricette.map((r) => [r.id, r]));
@@ -218,6 +220,18 @@ function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
         )}
 
         <View style={stili.sezione}>
+          {/* FEATURE-021: con uno sconto il cliente vede lordo, sconto e netto */}
+          {totali.scontoCent > 0 && (
+            <>
+              <Text style={{ textAlign: "right" }}>
+                Totale: {formattaEuro(totali.prezzoLordoCent)}
+              </Text>
+              <Text style={{ textAlign: "right" }}>
+                {preventivo.sconto_descrizione ?? "Sconto"} (
+                {Number(preventivo.sconto_pct)}%): −{formattaEuro(totali.scontoCent)}
+              </Text>
+            </>
+          )}
           <Text style={stili.totale}>
             Totale proposto: {formattaEuro(prezzoFinaleCent)}
           </Text>

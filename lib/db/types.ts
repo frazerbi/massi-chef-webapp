@@ -232,7 +232,12 @@ export interface Preventivo extends RigaBase {
   stato: StatoPreventivo;
   sfrido_pct: number;
   margine_target_pct: number;
+  /** prezzo proposto imposto a mano, AL LORDO dello sconto (null = somma righe) */
   prezzo_totale_cent: number | null;
+  /** FEATURE-021: sconto commerciale in % sul prezzo proposto lordo (0 = nessuno) */
+  sconto_pct: number;
+  /** FEATURE-021: motivo dello sconto, mostrato al cliente sul PDF */
+  sconto_descrizione: string | null;
   validita_giorni: number;
   note_cliente: string | null;
   condizioni: string | null;

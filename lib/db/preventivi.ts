@@ -37,6 +37,7 @@ import {
   validaDataFutura,
   validaIntero,
   validaMargine,
+  validaPercentuale,
   validaQuantita,
   validaTesto,
 } from "./validazioni";
@@ -308,6 +309,8 @@ export interface CampiPreventivoModificabili {
   margine_target_pct?: number;
   sfrido_pct?: number;
   prezzo_totale_cent?: number | null;
+  sconto_pct?: number;
+  sconto_descrizione?: string | null;
   validita_giorni?: number;
   note_cliente?: string | null;
   condizioni?: string | null;
@@ -319,6 +322,10 @@ export async function aggiornaPreventivo(
 ): Promise<void> {
   await verificaBozza(id);
   if (campi.margine_target_pct != null) validaMargine(campi.margine_target_pct);
+  // FEATURE-021: sconto commerciale 0–99,99% (100% regalerebbe il servizio)
+  if (campi.sconto_pct != null) {
+    campi.sconto_pct = validaPercentuale(campi.sconto_pct, "sconto", 0, 99.99);
+  }
   if (campi.data_evento != null) validaDataFutura(campi.data_evento, "data evento");
   const supabase = await creaClientServer();
   const { error } = await supabase.from("preventivo").update(campi).eq("id", id);
@@ -975,6 +982,13 @@ export async function calcolaPreventivo(id: string): Promise<CalcoloPreventivo> 
     costoBeveraggioCent,
     prezzoBeveraggioCent: 0,
     margineTargetPct: Number(preventivo.margine_target_pct),
+    // FEATURE-021: il totale imposto a mano è un lordo, lo sconto vale su
+    // entrambi i casi; utile e margine effettivo escono già al netto
+    prezzoTotaleManualeCent:
+      preventivo.prezzo_totale_cent != null
+        ? Number(preventivo.prezzo_totale_cent)
+        : null,
+    scontoPct: Number(preventivo.sconto_pct ?? 0),
   });
 
   return {
@@ -1057,8 +1071,11 @@ export async function inviaPreventivo(id: string): Promise<void> {
       stato: "inviato",
       food_cost_snapshot: snapshot,
       inviato_at: new Date().toISOString(),
+      // FEATURE-021: si congela il LORDO (lo sconto resta in sconto_pct e si
+      // riapplica in presentazione), altrimenti alla rilettura verrebbe
+      // scontato una seconda volta
       prezzo_totale_cent:
-        preventivo.prezzo_totale_cent ?? calcolo.totali.prezzoTotaleCent,
+        preventivo.prezzo_totale_cent ?? calcolo.totali.prezzoLordoCent,
     })
     .eq("id", id);
   if (error) throw new Error(`Invio preventivo fallito: ${error.message}`);
@@ -1163,6 +1180,8 @@ export async function duplicaPreventivo(
       margine_target_pct: preventivo.margine_target_pct,
       sfrido_pct: preventivo.sfrido_pct,
       prezzo_totale_cent: preventivo.prezzo_totale_cent,
+      sconto_pct: preventivo.sconto_pct,
+      sconto_descrizione: preventivo.sconto_descrizione,
       validita_giorni: preventivo.validita_giorni,
       note_cliente: preventivo.note_cliente,
       condizioni: preventivo.condizioni,

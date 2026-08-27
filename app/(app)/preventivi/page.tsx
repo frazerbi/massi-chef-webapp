@@ -7,6 +7,7 @@ import {
   TitoloPagina,
 } from "@/components/ui";
 import { formattaEuro } from "@/lib/calc/money";
+import { prezzoScontatoCent } from "@/lib/calc/preventivo";
 import { elencoPreventivi } from "@/lib/db/preventivi";
 import type { TipoEvento } from "@/lib/db/types";
 
@@ -91,7 +92,14 @@ export default async function PaginaPreventivi({
                   </td>
                   <td className={classiTd}>{p.stato}</td>
                   <td className={classiTd}>
-                    {p.prezzo_totale_cent != null ? formattaEuro(p.prezzo_totale_cent) : "—"}
+                    {p.prezzo_totale_cent != null
+                      ? formattaEuro(
+                          prezzoScontatoCent(
+                            p.prezzo_totale_cent,
+                            Number(p.sconto_pct ?? 0),
+                          ),
+                        )
+                      : "—"}
                   </td>
                 </tr>
               ))}

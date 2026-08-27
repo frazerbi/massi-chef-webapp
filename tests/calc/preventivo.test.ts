@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   calcolaTotaliPreventivo,
+  prezzoScontatoCent,
+  scontoSuPrezzoCent,
   porzioniDisallineate,
   quantitaEventoConsumabile,
   quantitaEventoMateriaPrima,
@@ -179,6 +181,119 @@ describe("quantitaEventoConsumabile (§5 — FEATURE-018)", () => {
     expect(() => quantitaEventoConsumabile(-5, 10)).toThrow();
     expect(() => quantitaEventoConsumabile(10, 0)).toThrow();
     expect(() => quantitaEventoConsumabile(10, 1.5)).toThrow();
+  });
+});
+
+describe("sconto commerciale (FEATURE-021)", () => {
+  const righeBase = [
+    {
+      tipoRiga: "ricetta" as const,
+      quantita: 100,
+      costoUnitarioCent: 700,
+      prezzoUnitarioCent: 1500,
+    },
+  ];
+
+  it("sconto 0: totali identici al comportamento senza sconto", () => {
+    const senza = calcolaTotaliPreventivo({
+      righe: righeBase,
+      costoBeveraggioCent: 0,
+      prezzoBeveraggioCent: 0,
+      margineTargetPct: 30,
+    });
+    const conZero = calcolaTotaliPreventivo({
+      righe: righeBase,
+      costoBeveraggioCent: 0,
+      prezzoBeveraggioCent: 0,
+      margineTargetPct: 30,
+      scontoPct: 0,
+    });
+    expect(conZero).toEqual(senza);
+    expect(senza.scontoCent).toBe(0);
+    expect(senza.prezzoLordoCent).toBe(senza.prezzoTotaleCent);
+  });
+
+  it("sconto amico 20%: riduce prezzo, utile e margine, non i costi", () => {
+    const totali = calcolaTotaliPreventivo({
+      righe: righeBase,
+      costoBeveraggioCent: 0,
+      prezzoBeveraggioCent: 0,
+      margineTargetPct: 30,
+      scontoPct: 20,
+    });
+    expect(totali.foodCostCent).toBe(70000); // invariato
+    expect(totali.costoTotaleCent).toBe(70000);
+    expect(totali.prezzoSuggeritoCent).toBe(100000); // 70000 / 0,7: sul costo
+    expect(totali.prezzoLordoCent).toBe(150000);
+    expect(totali.scontoCent).toBe(30000);
+    expect(totali.prezzoTotaleCent).toBe(120000);
+    expect(totali.utileCent).toBe(120000 - 70000);
+    expect(totali.margineEffettivoPct).toBeCloseTo((50000 / 120000) * 100, 6);
+    expect(totali.foodCostPct).toBeCloseTo((70000 / 120000) * 100, 6);
+  });
+
+  it("lo sconto si applica anche al prezzo totale imposto a mano", () => {
+    const totali = calcolaTotaliPreventivo({
+      righe: righeBase,
+      costoBeveraggioCent: 0,
+      prezzoBeveraggioCent: 0,
+      margineTargetPct: 30,
+      prezzoTotaleManualeCent: 200000,
+      scontoPct: 20,
+    });
+    expect(totali.prezzoLordoCent).toBe(200000);
+    expect(totali.scontoCent).toBe(40000);
+    expect(totali.prezzoTotaleCent).toBe(160000);
+    // il margine effettivo segue il prezzo davvero proposto, non la somma righe
+    expect(totali.utileCent).toBe(160000 - 70000);
+  });
+
+  it("prezzo manuale senza sconto: utile e margine sul prezzo manuale", () => {
+    const totali = calcolaTotaliPreventivo({
+      righe: righeBase,
+      costoBeveraggioCent: 0,
+      prezzoBeveraggioCent: 0,
+      margineTargetPct: 30,
+      prezzoTotaleManualeCent: 90000,
+    });
+    expect(totali.prezzoTotaleCent).toBe(90000);
+    expect(totali.utileCent).toBe(20000);
+  });
+
+  it("lordo − sconto = netto anche con arrotondamenti dispari", () => {
+    const lordo = 33333;
+    const sconto = scontoSuPrezzoCent(lordo, 20);
+    expect(sconto).toBe(6667); // 6666,6 -> 6667
+    expect(prezzoScontatoCent(lordo, 20)).toBe(lordo - sconto);
+  });
+
+  it("sconto che azzera il prezzo proposto: nessun margine calcolabile", () => {
+    const totali = calcolaTotaliPreventivo({
+      righe: righeBase,
+      costoBeveraggioCent: 0,
+      prezzoBeveraggioCent: 0,
+      margineTargetPct: 30,
+      prezzoTotaleManualeCent: 0,
+      scontoPct: 50,
+    });
+    expect(totali.prezzoTotaleCent).toBe(0);
+    expect(totali.margineEffettivoPct).toBeNull();
+    expect(totali.utileCent).toBe(-70000);
+  });
+
+  it("lancia su sconto fuori range o prezzo lordo negativo", () => {
+    expect(() => scontoSuPrezzoCent(10000, -1)).toThrow();
+    expect(() => scontoSuPrezzoCent(10000, 100)).toThrow();
+    expect(() => scontoSuPrezzoCent(-1, 20)).toThrow();
+    expect(() =>
+      calcolaTotaliPreventivo({
+        righe: righeBase,
+        costoBeveraggioCent: 0,
+        prezzoBeveraggioCent: 0,
+        margineTargetPct: 30,
+        scontoPct: 120,
+      }),
+    ).toThrow();
   });
 });
 
