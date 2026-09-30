@@ -283,6 +283,57 @@
   }
   .pausa ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-size: 0.93rem; }
 
+  /* Effort e scenari */
+  table.effort td:nth-child(2) { min-width: 14rem; }
+  table.effort td:last-child { min-width: 16rem; }
+  td.gg {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  tr.rischio td:first-child { box-shadow: inset 3px 0 0 var(--decidere); }
+  .totali {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.8rem;
+  }
+  .totali > div {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 0.8rem 1rem;
+    display: grid;
+    gap: 0.15rem;
+  }
+  .totali b { font-family: var(--font-display); font-size: 1.5rem; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .totali span { font-size: 0.86rem; color: var(--ink-soft); }
+  .scenari {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 0.9rem;
+  }
+  .scenario {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.1rem 1.2rem;
+    display: grid;
+    gap: 0.55rem;
+    align-content: start;
+  }
+  .scenario .lettera {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .scenario .gg { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-soft); }
+  .scenario p { font-size: 0.93rem; }
+  .scenario ul { margin: 0; padding-left: 1.1rem; font-size: 0.9rem; display: grid; gap: 0.25rem; }
+  .avvertenze { display: grid; gap: 0.7rem; }
+  .avvertenze p { font-size: 0.94rem; }
+
   footer { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 0.86rem; }
 
   @media (max-width: 620px) {
@@ -302,7 +353,7 @@
     <dl class="meta">
       <dt>Documento analizzato</dt><dd>«Piano di sviluppo del gestionale», versione 1.0 del 23 settembre 2026</dd>
       <dt>Confrontato con</dt><dd>Roadmap di bug e feature, specifica funzionale del progetto, stato del codice e del database</dd>
-      <dt>Data</dt><dd>30 settembre 2026</dd>
+      <dt>Data</dt><dd>30 settembre 2026 · aggiornato con stime, scenari e costi ricorrenti</dd>
       <dt>Uso</dt><dd>Base di discussione per la review con il cliente; le proposte vanno validate prima dello sviluppo</dd>
     </dl>
   </header>
@@ -318,7 +369,7 @@
       <li>Il piano sposta il baricentro del gestionale: da calcolatore di preventivi a strumento che segue l'<strong>evento</strong> dalla telefonata al consuntivo, con un <strong>portale per il cliente</strong> e notifiche automatiche.</li>
       <li>Quasi tutto ciò che è nuovo presuppone l'entità <strong>evento</strong>, che nel gestionale oggi non esiste. Costruirla è il primo passo obbligato, qualunque sia l'ordine scelto per il resto.</li>
       <li>Le priorità del piano (anagrafiche, scheda telefonata, portale) non coincidono con quelle della roadmap attuale (categorie, spesa, attrezzature, magazzino). Va scelto un ordine unico.</li>
-      <li>La stima di 18–25 giornate indicata in roadmap copriva solo la checklist di agosto e non vale per questo piano. Per il piano completo si può stimare solo dopo aver sciolto i sette punti da decidere.</li>
+      <li>Ordine di grandezza: <strong>circa 35–55 giornate</strong> per il percorso P0 del piano, <strong>circa 75–115</strong> per il piano completo, contro le 18–25 della roadmap attuale. La sezione 7 propone tre scenari (A, B, C) fra cui scegliere.</li>
     </ul>
   </div>
 
@@ -365,7 +416,7 @@
   <section id="nuovo">
     <p class="eyebrow">3 · Cosa manca</p>
     <h2>Richieste nuove</h2>
-    <p class="intro">Voci assenti sia dalla roadmap sia dalla specifica. La taglia (S, M, L) è relativa, come nel piano del cliente: le giornate si stimano solo dopo le decisioni della sezione 4.</p>
+    <p class="intro">Voci assenti sia dalla roadmap sia dalla specifica. La taglia (S, M, L) è relativa, come nel piano del cliente. Le giornate per blocco di lavoro sono nella sezione 7.</p>
 
     <h3 class="gruppo">Priorità P0 del cliente <small>il piano le considera la base di tutto il resto</small></h3>
     <div class="tabella">
@@ -519,7 +570,7 @@
     <p class="intro">Segue le fasi del piano del cliente, con un passo in più: l'evento va costruito prima della scheda telefonata e del portale, perché entrambi si appoggiano a lui. È una proposta da validare in review, non un impegno.</p>
     <ol class="sequenza">
       <li><h3>Fondamenta tecniche</h3><p>Ambiente di prova, backup con ripristino provato, esportazione completa dei dati. Condizione per tutto il resto (D5).</p></li>
-      <li><h3>Anagrafiche affidabili</h3><p>N5, a partire dalla verifica D6 sui dati reali. Assorbe CL-2 (categorie e codice interno).</p></li>
+      <li><h3>Anagrafiche affidabili</h3><p>N5, a partire dalla verifica D6 sui dati reali. Prima la versione leggera (storico prezzi, controlli, duplicati), poi, se serve, la separazione ingrediente / prodotto fornitore. Assorbe CL-2 (categorie e codice interno).</p></li>
       <li><h3>Cliente ed evento</h3><p>Anagrafica cliente completa, evento con luogo, orari e fuso, stati (D4), pagamenti, calendario. Coincide con la fase 2 della specifica, più N14.</p></li>
       <li><h3>Scheda telefonata</h3><p>N1, con riporto automatico dei dati nel preventivo.</p></li>
       <li><h3>Versioni, PDF ed email</h3><p>N4, N11 e la parte email di N3. Qui si scioglie D1 e si decide l'IVA (FEATURE-014).</p></li>
@@ -537,6 +588,106 @@
       </ul>
     </div>
     <p class="nota">Il piano chiede anche un prototipo approvato prima di ogni fase e test su tre casi reali: una cena privata piccola, un buffet medio, un evento complesso con bambini e allergie. È un metodo che conviene adottare così com'è.</p>
+  </section>
+
+  <section id="effort">
+    <p class="eyebrow">7 · Effort e fattibilità</p>
+    <h2>Quanto costa ogni blocco e come scegliere</h2>
+    <p class="intro">Le stime sono in giornate di lavoro effettivo, a decisioni prese, calibrate sul ritmo tenuto finora. Sono ordini di grandezza per scegliere lo scenario, non un preventivo: ogni fase va ristimata dopo il suo prototipo.</p>
+
+    <h3 class="gruppo">Come valutare le priorità</h3>
+    <p class="intro" style="margin-top:-0.4rem;">Prima si separano tre gruppi: ciò che serve <strong>comunque vada la review</strong> (si può iniziare subito), ciò che è <strong>bloccato da una decisione</strong> della sezione 4, ciò che è <strong>rimandabile</strong>. Dentro ogni gruppo si pesano cinque criteri.</p>
+    <div class="tabella">
+      <table>
+        <thead><tr><th>Criterio</th><th>Domanda</th></tr></thead>
+        <tbody>
+          <tr><td>Valore quotidiano</td><td>Massi lo userà ogni settimana o una volta al mese?</td></tr>
+          <tr><td>Sblocca altro</td><td>Quante voci dipendono da questa? L'evento, per esempio, ne sblocca una decina.</td></tr>
+          <tr><td>Rischio</td><td>Tocca prezzi, dati reali, sicurezza o dati sulla salute? Allora va fatto presto e con cura, non per ultimo.</td></tr>
+          <tr><td>Costo ricorrente</td><td>Richiede servizi a pagamento (email, WhatsApp, piani superiori)?</td></tr>
+          <tr><td>Reversibilità</td><td>Se si sbaglia, si torna indietro facilmente? Le modifiche ai dati esistenti no.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="gruppo">Effort per blocco <small>la barra a sinistra segna i blocchi a rischio più alto</small></h3>
+    <div class="tabella">
+      <table class="effort">
+        <thead><tr><th>Blocco</th><th>Contenuto</th><th>Giornate</th><th>Fattibilità e rischi</th></tr></thead>
+        <tbody>
+          <tr><td>0 · Fondamenta</td><td>Ambiente di prova, verifica backup e ripristino, esportazione dei dati</td><td class="gg">1–2</td><td>Semplice. Richiede di rivedere i piani di hosting e database (vedi costi ricorrenti).</td></tr>
+          <tr><td>1a · Anagrafiche leggere</td><td>Verifica D6, storico prezzi, avviso prezzi anomali, controllo duplicati, modulo più chiaro</td><td class="gg">3–4</td><td>Basso rischio: aggiunge dati senza trasformare quelli esistenti.</td></tr>
+          <tr class="rischio"><td>1b · Anagrafiche complete</td><td>Separazione ingrediente / prodotto fornitore, unione con alias, pulizia dei dati</td><td class="gg">+5–7</td><td>Rischio alto: tocca ricette, menu, preventivi e costi congelati sui dati reali. Solo con l'ambiente di prova attivo.</td></tr>
+          <tr><td>2 · Cliente ed evento</td><td>Anagrafica completa, evento, stati, pagamenti, calendario, dati ospiti dettagliati</td><td class="gg">6–9</td><td>Già progettato nella specifica. Gli stati dipendono da D4.</td></tr>
+          <tr><td>3 · Scheda telefonata</td><td>Circa 15 sezioni, domande condizionali, salvataggio automatico, completezza, riporto nel preventivo</td><td class="gg">6–10</td><td>Fattibile. Il costo dipende da una scelta: domande fisse oppure modificabili da Massi. Per la dettatura basta quella della tastiera del telefono.</td></tr>
+          <tr><td>4 · Versioni, PDF, email</td><td>V1/V2, accettazione, numerazione, PDF con immagine coordinata, invio email</td><td class="gg">5–8</td><td>Serve un servizio email e la configurazione del dominio mittente. Dipende da D1.</td></tr>
+          <tr class="rischio"><td>5 · Portale cliente</td><td>Link sicuro, permessi, richieste con approvazione, D-9/D-8, centro notifiche, privacy di base</td><td class="gg">10–15</td><td>Il blocco più delicato: pagine aperte a esterni con dati sulla salute, un nuovo modello di accesso e processi programmati. Servono le regole del consulente privacy.</td></tr>
+          <tr><td>6 · Operatività</td><td>Spesa, produzione con tempi, checklist attrezzature, personale e turni, beverage, timeline</td><td class="gg">13–18</td><td>Fattibile, in buona parte già progettata nella specifica.</td></tr>
+          <tr><td>7 · Consuntivo e uso quotidiano</td><td>Consuntivo con semafori, ricerca e dashboard, app installabile, foto</td><td class="gg">11–17</td><td>Il consuntivo dà valore solo quando ci sono eventi reali registrati.</td></tr>
+          <tr class="rischio"><td>8 · Evoluzioni</td><td>WhatsApp automatico, import listini, analisi, ruoli</td><td class="gg">15–25</td><td>I ruoli da soli valgono 5–8 giornate: cambiano le regole di accesso di tutte le tabelle. WhatsApp ha costi e un'approvazione del fornitore.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="totali">
+      <div><b>35–55 g</b><span>percorso P0 del piano (blocchi 0–5)</span></div>
+      <div><b>75–115 g</b><span>piano completo (blocchi 0–8)</span></div>
+      <div><b>18–25 g</b><span>roadmap attuale, per confronto</span></div>
+    </div>
+
+    <h3 class="gruppo">Tre scenari <small>da scegliere in review</small></h3>
+    <div class="scenari">
+      <article class="scenario">
+        <span class="lettera">A</span>
+        <h3>Essenziale</h3>
+        <span class="gg">circa 21–33 giornate · blocchi 0, 1a, 2, 3, 4</span>
+        <p>Dalla telefonata al preventivo versionato inviato per email, con anagrafiche affidabili, eventi e pagamenti.</p>
+        <ul><li>Il cliente riceve il preventivo, non ha ancora un portale.</li><li>Le modifiche del cliente arrivano come oggi e le registra Massi.</li></ul>
+      </article>
+      <article class="scenario">
+        <span class="lettera">B</span>
+        <h3>Piano P0</h3>
+        <span class="gg">circa 36–55 giornate · A + 1b, 5</span>
+        <p>Tutto lo scenario A più il portale cliente con scadenza D-8 e le anagrafiche complete.</p>
+        <ul><li>Richiede le regole privacy del consulente prima del portale.</li><li>Richiede decisioni D1, D4 e la scelta del servizio email.</li></ul>
+      </article>
+      <article class="scenario">
+        <span class="lettera">C</span>
+        <h3>Completo</h3>
+        <span class="gg">circa 75–115 giornate · tutti i blocchi</span>
+        <p>Lo scenario B più operatività, consuntivo, ricerca, uso da telefono ed evoluzioni.</p>
+        <ul><li>Da pianificare su più mesi, con verifica su eventi reali tra una fase e l'altra.</li><li>I ruoli entrano solo se D2 lo richiede.</li></ul>
+      </article>
+    </div>
+
+    <h3 class="gruppo">Si può iniziare subito <small>validi in qualsiasi scenario</small></h3>
+    <div class="pausa">
+      <ul>
+        <li><strong>Blocco 0, fondamenta</strong>: il piano lo chiede esplicitamente, e senza ambiente di prova non conviene toccare le anagrafiche.</li>
+        <li><strong>Verifica D6 sui dati reali</strong>: poche query che dicono se il problema dei costi è nel modello o nei dati inseriti.</li>
+        <li><strong>Blocco 2, cliente ed evento</strong>: previsto sia dalla specifica sia dal piano, sblocca quasi tutto il resto.</li>
+      </ul>
+    </div>
+
+    <h3 class="gruppo">Costi ricorrenti <small>indicativi, da verificare sui listini attuali</small></h3>
+    <div class="tabella">
+      <table>
+        <thead><tr><th>Servizio</th><th>Quando serve</th><th>Ordine di grandezza</th></tr></thead>
+        <tbody>
+          <tr><td>Hosting (Vercel)</td><td>Subito: il piano gratuito è riservato a uso non commerciale</td><td class="gg">circa 20 $/mese</td></tr>
+          <tr><td>Database (Supabase)</td><td>Blocco 0: backup giornalieri e ripristino sono sui piani a pagamento</td><td class="gg">circa 25 $/mese</td></tr>
+          <tr><td>Invio email</td><td>Blocco 4</td><td class="gg">gratuito a bassi volumi</td></tr>
+          <tr><td>WhatsApp Business automatico</td><td>Blocco 8; il pulsante «Condividi su WhatsApp» è gratuito</td><td class="gg">a messaggio, secondo il fornitore</td></tr>
+          <tr><td>Consulenza privacy</td><td>Prima del blocco 5</td><td class="gg">una tantum, esterna al progetto</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="gruppo">Tre avvertenze</h3>
+    <div class="avvertenze">
+      <p class="nota"><strong>Portale e privacy.</strong> Rendere visibili via link dati sulla salute di terzi cambia le responsabilità, non solo il lavoro. Come dice il piano stesso, le regole le definisce il consulente e il tecnico le applica: il portale non parte senza.</p>
+      <p class="nota"><strong>Anagrafiche complete solo con l'ambiente di prova.</strong> Trasformare le materie prime sui dati reali senza una copia su cui provare è il modo più rapido per alterare i costi dei preventivi già inviati.</p>
+      <p class="nota"><strong>Consegna a fasi.</strong> Ogni fase parte da un prototipo approvato e si chiude con i criteri di accettazione del piano (DAT, TEL, PRE, POR, CON, SEC), verificati sui tre casi reali indicati dal cliente.</p>
+    </div>
   </section>
 
   <footer>
