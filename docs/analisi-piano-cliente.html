@@ -1,0 +1,546 @@
+<title>Analisi del piano Massi Chef</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=Public+Sans:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  /* Layout: colonna unica da documento di lavoro, tabelle con scorrimento proprio, colore usato solo come stato (nuovo / previsto / da decidere) */
+  :root {
+    --bg: #f3f4f1;
+    --surface: #ffffff;
+    --ink: #1d2421;
+    --ink-soft: #58625d;
+    --line: #dcdfd8;
+    --accent: #36563a;
+    --accent-soft: #e5ece2;
+    --nuovo: #2b5c8a;
+    --nuovo-soft: #e3ecf5;
+    --previsto: #3f7a4f;
+    --previsto-soft: #e4f1e7;
+    --decidere: #9a620d;
+    --decidere-soft: #f7ecd8;
+    --font-display: "Literata", Georgia, "Times New Roman", serif;
+    --font-body: "Public Sans", -apple-system, "Segoe UI", Arial, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #151a18;
+      --surface: #1c2320;
+      --ink: #e6ebe7;
+      --ink-soft: #a0aba5;
+      --line: #2f3834;
+      --accent: #9cc49f;
+      --accent-soft: #24302a;
+      --nuovo: #8fb8e0;
+      --nuovo-soft: #1e2b38;
+      --previsto: #8fcfa0;
+      --previsto-soft: #1d3025;
+      --decidere: #e5b565;
+      --decidere-soft: #362b17;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #151a18;
+    --surface: #1c2320;
+    --ink: #e6ebe7;
+    --ink-soft: #a0aba5;
+    --line: #2f3834;
+    --accent: #9cc49f;
+    --accent-soft: #24302a;
+    --nuovo: #8fb8e0;
+    --nuovo-soft: #1e2b38;
+    --previsto: #8fcfa0;
+    --previsto-soft: #1d3025;
+    --decidere: #e5b565;
+    --decidere-soft: #362b17;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15.5px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 3rem 5rem;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 650;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 { font-size: clamp(1.8rem, 4.5vw, 2.4rem); line-height: 1.15; letter-spacing: -0.01em; }
+  h2 { font-size: 1.45rem; line-height: 1.25; }
+  h3 { font-size: 1.08rem; line-height: 1.3; }
+  p { margin: 0; max-width: 68ch; }
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.84em;
+    background: var(--accent-soft);
+    padding: 0.05rem 0.3rem;
+    border-radius: 4px;
+  }
+
+  .eyebrow {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  header.doc { display: grid; gap: 0.9rem; margin-bottom: 2.2rem; }
+  header.doc .lede { font-size: 1.08rem; color: var(--ink-soft); }
+  dl.meta {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.35rem 1.2rem;
+    margin: 0.4rem 0 0;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.9rem;
+  }
+  dl.meta dt { color: var(--ink-soft); }
+  dl.meta dd { margin: 0; }
+
+  section { margin-top: 3rem; display: grid; gap: 1rem; }
+  section > .intro { color: var(--ink-soft); }
+
+  /* In breve */
+  .breve {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.3rem 1.4rem;
+    display: grid;
+    gap: 1.1rem;
+  }
+  .conti {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.8rem;
+  }
+  .conto { display: grid; gap: 0.15rem; }
+  .conto b {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .conto span { font-size: 0.86rem; color: var(--ink-soft); }
+  .conto.nuovo b { color: var(--nuovo); }
+  .conto.previsto b { color: var(--previsto); }
+  .conto.decidere b { color: var(--decidere); }
+  .breve ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.45rem; }
+
+  /* Pill di stato */
+  .pill {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.14rem 0.5rem;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+  .pill.nuovo { background: var(--nuovo-soft); color: var(--nuovo); }
+  .pill.previsto { background: var(--previsto-soft); color: var(--previsto); }
+  .pill.decidere { background: var(--decidere-soft); color: var(--decidere); }
+  .pill.fatto { background: var(--accent-soft); color: var(--accent); }
+
+  /* Tabelle */
+  .tabella {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.65rem 0.85rem;
+    border-bottom: 1px solid var(--line);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  thead th {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  td.id, td.taglia {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    color: var(--ink-soft);
+  }
+  td.taglia { text-align: center; color: var(--ink); }
+  td .sub { display: block; color: var(--ink-soft); font-size: 0.86rem; margin-top: 0.2rem; }
+  table.nuovi td:nth-child(2) { min-width: 15rem; }
+  table.audit td:first-child { min-width: 12rem; font-weight: 600; }
+  table.audit td:last-child { min-width: 20rem; }
+
+  h3.gruppo {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 0.6rem;
+  }
+  h3.gruppo small {
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    font-weight: 400;
+    color: var(--ink-soft);
+  }
+
+  /* Contrasti */
+  .contrasti { display: grid; gap: 0.9rem; }
+  .contrasto {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1.1rem 1.25rem;
+    display: grid;
+    gap: 0.7rem;
+  }
+  .contrasto .testa { display: flex; gap: 0.7rem; align-items: baseline; flex-wrap: wrap; }
+  .contrasto .num {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--decidere);
+  }
+  .confronto {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+  }
+  .confronto > div { min-width: 0; font-size: 0.93rem; }
+  .confronto b {
+    display: block;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 0.15rem;
+  }
+  .domanda {
+    background: var(--decidere-soft);
+    border-radius: 8px;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.93rem;
+  }
+  .domanda strong { color: var(--decidere); }
+
+  /* Sequenza proposta */
+  ol.sequenza { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: passo -1; }
+  ol.sequenza li {
+    counter-increment: passo;
+    display: grid;
+    grid-template-columns: 2.4rem 1fr;
+    gap: 0.2rem 0.8rem;
+    padding: 0.9rem 0;
+    border-top: 1px solid var(--line);
+  }
+  ol.sequenza li::before {
+    content: counter(passo, decimal);
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    line-height: 1.2;
+    color: var(--accent);
+    grid-row: span 2;
+  }
+  ol.sequenza li h3 { font-size: 1rem; }
+  ol.sequenza li p { color: var(--ink-soft); font-size: 0.93rem; }
+
+  .nota {
+    border-left: 3px solid var(--accent);
+    padding: 0.2rem 0 0.2rem 0.9rem;
+    color: var(--ink-soft);
+    font-size: 0.93rem;
+  }
+  .pausa {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .pausa ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.35rem; font-size: 0.93rem; }
+
+  footer { margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 0.86rem; }
+
+  @media (max-width: 620px) {
+    .wrap { padding-block: 2rem 4rem; padding-inline: 16px; }
+    .confronto { grid-template-columns: 1fr; }
+    dl.meta { grid-template-columns: 1fr; gap: 0 0; }
+    dl.meta dd { margin-bottom: 0.5rem; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="doc">
+    <p class="eyebrow">Chef Manager · Documento di sintesi</p>
+    <h1>Analisi del piano di sviluppo di Massi Chef</h1>
+    <p class="lede">Confronto fra il documento ricevuto dal cliente e quello che il gestionale fa oggi o ha già in programma: cosa c'è, cosa manca, dove le due visioni non coincidono e cosa va deciso prima di stimare il lavoro.</p>
+    <dl class="meta">
+      <dt>Documento analizzato</dt><dd>«Piano di sviluppo del gestionale», versione 1.0 del 23 settembre 2026</dd>
+      <dt>Confrontato con</dt><dd>Roadmap di bug e feature, specifica funzionale del progetto, stato del codice e del database</dd>
+      <dt>Data</dt><dd>30 settembre 2026</dd>
+      <dt>Uso</dt><dd>Base di discussione per la review con il cliente; le proposte vanno validate prima dello sviluppo</dd>
+    </dl>
+  </header>
+
+  <div class="breve">
+    <p class="eyebrow">In breve</p>
+    <div class="conti">
+      <div class="conto nuovo"><b>17</b><span>richieste nuove, non previste da nessuna parte</span></div>
+      <div class="conto previsto"><b>9</b><span>già in programma, in tutto o in parte</span></div>
+      <div class="conto decidere"><b>7</b><span>punti in contrasto con decisioni già prese</span></div>
+    </div>
+    <ul>
+      <li>Il piano sposta il baricentro del gestionale: da calcolatore di preventivi a strumento che segue l'<strong>evento</strong> dalla telefonata al consuntivo, con un <strong>portale per il cliente</strong> e notifiche automatiche.</li>
+      <li>Quasi tutto ciò che è nuovo presuppone l'entità <strong>evento</strong>, che nel gestionale oggi non esiste. Costruirla è il primo passo obbligato, qualunque sia l'ordine scelto per il resto.</li>
+      <li>Le priorità del piano (anagrafiche, scheda telefonata, portale) non coincidono con quelle della roadmap attuale (categorie, spesa, attrezzature, magazzino). Va scelto un ordine unico.</li>
+      <li>La stima di 18–25 giornate indicata in roadmap copriva solo la checklist di agosto e non vale per questo piano. Per il piano completo si può stimare solo dopo aver sciolto i sette punti da decidere.</li>
+    </ul>
+  </div>
+
+  <section id="gia-fatto">
+    <p class="eyebrow">1 · Cosa c'è già</p>
+    <h2>La base su cui il piano si appoggia</h2>
+    <p class="intro">Il piano riconosce questi punti come «da mantenere». Sono in produzione e verificati.</p>
+    <div class="tabella">
+      <table>
+        <thead><tr><th>Area</th><th>Cosa fa oggi</th></tr></thead>
+        <tbody>
+          <tr><td>Costi</td><td>Costo delle materie prime con unità d'acquisto e d'uso chiuse, fattore di conversione esplicito e resa; food cost delle ricette ricalcolato dai prezzi, anche attraverso le sotto-ricette, con blocco dei collegamenti circolari.</td></tr>
+          <tr><td>Menu e preventivi</td><td>Menu riutilizzabili come punto di partenza del preventivo; righe raggruppate per portata; materie prime e consumabili inseribili direttamente; margine target, prezzo suggerito, sconto percentuale.</td></tr>
+          <tr><td>Beveraggio</td><td>Stima a testa da profili, correttivi, distribuzione vino/birra, bambini senza alcolici, arrotondamento a confezione e collo, più prodotti per categoria, valore finale correggibile a mano.</td></tr>
+          <tr><td>Storico commerciale</td><td>All'invio i costi vengono congelati: un preventivo inviato non cambia se cambiano i prezzi. Revisione di un preventivo come copia collegata.</td></tr>
+          <tr><td>Documento cliente</td><td>PDF generato lato server, senza costi interni né margini; adulti e bambini separati; validità in giorni e condizioni in testo libero.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="previsto">
+    <p class="eyebrow">2 · Già in programma</p>
+    <h2>Richieste che la specifica o la roadmap coprono già</h2>
+    <p class="intro">Per queste voci il lavoro è già progettato, almeno in parte. Il piano aggiunge dettagli che vanno integrati nel progetto esistente.</p>
+    <div class="tabella">
+      <table>
+        <thead><tr><th>Richiesta del piano</th><th>Dove è prevista</th><th>Cosa aggiunge il piano</th></tr></thead>
+        <tbody>
+          <tr><td>Lista spesa aggregata per fornitore e formato</td><td><span class="pill previsto">Roadmap CL-4</span></td><td>Doppia unità (produzione e acquisto) su ogni riga; versione e ora di generazione in stampa.</td></tr>
+          <tr><td>Checklist attrezzature, servizio, trasporto e rientro</td><td><span class="pill previsto">CL-3 · CL-5</span></td><td>Distinzione proprietà/noleggio e rientro; origine anche dalla scheda telefonata, non solo dal menu.</td></tr>
+          <tr><td>Piano personale, ruoli e turni</td><td><span class="pill previsto">Specifica fase 6</span></td><td>Pasti dello staff, contatti, costo previsto e reale già durante la preparazione.</td></tr>
+          <tr><td>Pagamenti: acconto, saldo, extra, incassi</td><td><span class="pill previsto">Specifica fase 2</span></td><td>Acconto anche come importo fisso, oltre che in percentuale.</td></tr>
+          <tr><td>Calendario eventi</td><td><span class="pill previsto">Specifica fase 2</span></td><td>Carico di lavoro settimanale e disponibilità di personale e attrezzature (P2).</td></tr>
+          <tr><td>Magazzino con lotti e scadenze</td><td><span class="pill previsto">CL-11 · fase 5</span></td><td>Il piano lo sposta in P2: <em>dopo</em> aver sistemato le anagrafiche.</td></tr>
+          <tr><td>Categorie coerenti e nomi puliti</td><td><span class="pill previsto">CL-2</span></td><td>Controllo dei duplicati, unione di voci con alias, pulizia guidata dei dati esistenti.</td></tr>
+          <tr><td>Imposte nel totale del preventivo</td><td><span class="pill previsto">FEATURE-014</span></td><td>Diventa un campo obbligatorio prima dell'invio: la decisione sull'IVA non si può più rimandare.</td></tr>
+          <tr><td>Invio del documento al cliente</td><td><span class="pill previsto">FEATURE-006</span></td><td>Da invio del menu a sistema di notifiche completo (vedi N3).</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="nuovo">
+    <p class="eyebrow">3 · Cosa manca</p>
+    <h2>Richieste nuove</h2>
+    <p class="intro">Voci assenti sia dalla roadmap sia dalla specifica. La taglia (S, M, L) è relativa, come nel piano del cliente: le giornate si stimano solo dopo le decisioni della sezione 4.</p>
+
+    <h3 class="gruppo">Priorità P0 del cliente <small>il piano le considera la base di tutto il resto</small></h3>
+    <div class="tabella">
+      <table class="nuovi">
+        <thead><tr><th>ID</th><th>Richiesta</th><th>Taglia</th><th>Serve prima</th></tr></thead>
+        <tbody>
+          <tr><td class="id">N1</td><td><strong>Scheda telefonata interna</strong><span class="sub">Creata con ogni nuovo preventivo, compilata durante la chiamata: cliente, evento, luogo, cucina disponibile, ospiti, budget, menu, allergie, servizio, allestimento, bevande, personale, condizioni. Risposte Sì / No / Da verificare / Non necessario, domande condizionali, salvataggio automatico, indicatore di completezza, campi che impediscono l'invio, dettatura delle note, riporto automatico dei dati nel preventivo.</span></td><td class="taglia">L</td><td>Evento</td></tr>
+          <tr><td class="id">N2</td><td><strong>Portale cliente con scadenza D-8</strong><span class="sub">Link personale sicuro e revocabile, eventuale codice monouso. Il cliente aggiorna contatti, ospiti, bambini e allergie; per menu, servizio, date e luogo invia una richiesta. Ogni modifica registra prima e dopo e attende l'approvazione di Massi se cambia il prezzo. Promemoria a D-9, sola lettura da D-7, poi solo richieste urgenti.</span></td><td class="taglia">L</td><td>Evento, N3, N4</td></tr>
+          <tr><td class="id">N3</td><td><strong>Notifiche e centro notifiche</strong><span class="sub">Email automatiche (invio, accettazione, modifica ricevuta, promemoria, blocco), pulsante «Condividi su WhatsApp» con testo precompilato, centro notifiche interno con filtri. Coda con nuovi tentativi, nessun doppio invio, registro di ogni messaggio. Richiede un servizio email e processi programmati, oggi assenti.</span></td><td class="taglia">M</td><td>Scelta del servizio email</td></tr>
+          <tr><td class="id">N4</td><td><strong>Versioni del preventivo e regole commerciali</strong><span class="sub">Versioni numerate V1, V2…; accettazione riferita a una versione, con data, ora e modalità; motivo della sostituzione; riepilogo della differenza di prezzo. Regole configurabili: validità, acconto, tolleranza sugli ospiti, minimo garantito, extra, cancellazione a scaglioni. Oggi esiste solo la revisione come copia collegata, senza numero.</span></td><td class="taglia">M</td><td>Decisione sul punto 1 della sezione 4</td></tr>
+          <tr><td class="id">N5</td><td><strong>Anagrafiche affidabili</strong><span class="sub">Separazione fra ingrediente (identità in cucina) e prodotto del fornitore (marca, codice, formato, prezzo, IVA): più prodotti per lo stesso ingrediente. Storico dei prezzi invece della sovrascrittura, avviso sui prezzi anomali, controllo dei duplicati con unione e alias, voci incomplete escluse dai calcoli, pulizia guidata dei dati esistenti.</span></td><td class="taglia">L</td><td>Ambiente di test e backup</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="gruppo">Priorità P1 <small>dopo la base: lavorare l'evento e misurarlo</small></h3>
+    <div class="tabella">
+      <table class="nuovi">
+        <thead><tr><th>ID</th><th>Richiesta</th><th>Taglia</th><th>Serve prima</th></tr></thead>
+        <tbody>
+          <tr><td class="id">N6</td><td><strong>Consuntivo post-evento</strong><span class="sub">Confronto previsto/reale per materie prime, bevande, consumabili, personale, noleggi, trasporto, ricavo e margine; quantità preparate, consumate, avanzate e sprecate; valutazione qualitativa con tre campi obbligatori; semafori configurabili (5% / 10%); suggerimenti che non modificano nulla senza approvazione; archivio di lezioni apprese. La specifica prevedeva solo l'utile stimato del servizio privato.</span></td><td class="taglia">L</td><td>Evento, personale</td></tr>
+          <tr><td class="id">N7</td><td><strong>Piano di produzione, timeline e attività</strong><span class="sub">Preparazioni per giorno e ora con dipendenze e responsabile; timeline dal carico al rientro; attività operative con scadenza, priorità, note e foto; avviso quando una modifica approvata rende obsoleta una lista. La specifica prevedeva solo una checklist delle preparazioni.</span></td><td class="taglia">L</td><td>Evento, N1</td></tr>
+          <tr><td class="id">N8</td><td><strong>Piano beverage operativo</strong><span class="sub">Oltre alla stima: ghiaccio, bicchieri, temperature, rifornimento, bottiglie residue e rese a fine evento.</span></td><td class="taglia">M</td><td>Evento</td></tr>
+          <tr><td class="id">N9</td><td><strong>Ricerca, filtri e dashboard</strong><span class="sub">Ricerca unica su clienti, eventi, ricette, ingredienti, fornitori e numeri di preventivo; filtri combinabili e salvabili; azioni rapide dalle liste; modifiche su più voci insieme; dashboard con scadenze, richieste da approvare, dati mancanti, margini sotto soglia, consuntivi aperti.</span></td><td class="taglia">M</td><td>—</td></tr>
+          <tr><td class="id">N10</td><td><strong>Uso da telefono e foto</strong><span class="sub">App installabile sulla schermata del telefono, comandi grandi, uso con connessione debole, foto di cucina, location, attrezzature e scontrini con archiviazione degli allegati.</span></td><td class="taglia">M</td><td>—</td></tr>
+          <tr><td class="id">N11</td><td><strong>PDF con immagine coordinata</strong><span class="sub">Logo, colori e contatti Massi Chef; numero preventivo e versione su ogni pagina; inclusioni ed esclusioni separate; condizioni in linguaggio semplice; allegato allergeni. Oggi il preventivo non ha un numero progressivo.</span></td><td class="taglia">S</td><td>N4 per il numero di versione</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="gruppo">Trasversali <small>il piano li dà per scontati, ma cambiano il perimetro del progetto</small></h3>
+    <div class="tabella">
+      <table class="nuovi">
+        <thead><tr><th>ID</th><th>Richiesta</th><th>Taglia</th><th>Serve prima</th></tr></thead>
+        <tbody>
+          <tr><td class="id">N12</td><td><strong>Più utenti e ruoli</strong><span class="sub">Amministratore, chef/commerciale, collaboratore operativo, sola lettura; costi e margini visibili solo ai ruoli autorizzati; secondo fattore di accesso per l'amministratore.</span></td><td class="taglia">L</td><td>Decisione sul punto 2 della sezione 4</td></tr>
+          <tr><td class="id">N13</td><td><strong>Registro modifiche e privacy</strong><span class="sub">Registro non modificabile di chi ha cambiato cosa, con prima e dopo. Le allergie sono dati sulla salute: informativa nel portale, conferma del referente, tempi di conservazione, esportazione, rettifica e cancellazione. Il piano chiede che queste regole le definisca un consulente, non il tecnico.</span></td><td class="taglia">M</td><td>Indicazioni del consulente privacy</td></tr>
+          <tr><td class="id">N14</td><td><strong>Dati evento più dettagliati</strong><span class="sub">Bambini per fascia d'età, neonati, staff da nutrire, minimo e massimo stimati; luogo, orari e fuso orario dell'evento. Oggi il preventivo ha solo data, adulti e bambini.</span></td><td class="taglia">S</td><td>Evento</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="gruppo">Evoluzioni P2 <small>dichiarate dal cliente come successive</small></h3>
+    <div class="tabella">
+      <table class="nuovi">
+        <thead><tr><th>ID</th><th>Richiesta</th><th>Taglia</th><th>Serve prima</th></tr></thead>
+        <tbody>
+          <tr><td class="id">N15</td><td><strong>WhatsApp Business automatico</strong><span class="sub">Messaggi automatici con modelli approvati e consenso registrato. Ha costi e requisiti del fornitore da verificare.</span></td><td class="taglia">M</td><td>N3 stabile</td></tr>
+          <tr><td class="id">N16</td><td><strong>Import listini e fatture fornitori</strong><span class="sub">Aggiornamento prezzi da file con revisione manuale delle corrispondenze.</span></td><td class="taglia">M</td><td>N5</td></tr>
+          <tr><td class="id">N17</td><td><strong>Analisi di eventi simili</strong><span class="sub">Confronti per tipo, numero ospiti, stagione e stile di servizio; modelli di evento duplicabili.</span></td><td class="taglia">M</td><td>N6 con dati reali</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="contrasti">
+    <p class="eyebrow">4 · Da decidere</p>
+    <h2>Dove il piano e le scelte già fatte non coincidono</h2>
+    <p class="intro">Nessuno di questi punti è un errore del piano: sono scelte fatte in passato con informazioni diverse. Vanno risolti prima di stimare, perché cambiano il modello dei dati.</p>
+
+    <div class="contrasti">
+      <article class="contrasto">
+        <div class="testa"><span class="num">D1</span><h3>Riapertura di un preventivo già accettato</h3></div>
+        <div class="confronto">
+          <div><b>Oggi</b>Il pulsante «Riporta in bozza» (introdotto il 20 agosto su richiesta) funziona da qualsiasi stato, confermato incluso, e cancella i costi congelati.</div>
+          <div><b>Il piano chiede</b>Una versione accettata non si modifica mai: ogni cambiamento produce una nuova versione, e le quattro «fotografie» (inviato, accettato, bloccato D-8, consuntivo) restano tutte consultabili.</div>
+        </div>
+        <p class="domanda"><strong>Da decidere:</strong> togliere la riapertura dei preventivi accettati e sostituirla con «crea nuova versione»? È la strada coerente con il piano.</p>
+      </article>
+
+      <article class="contrasto">
+        <div class="testa"><span class="num">D2</span><h3>Utente singolo o più persone</h3></div>
+        <div class="confronto">
+          <div><b>Oggi</b>Il progetto è stato impostato per un solo professionista, con collaboratori in sola lettura come possibilità futura. Nessun ruolo.</div>
+          <div><b>Il piano chiede</b>Account individuali, quattro ruoli, margini nascosti ai collaboratori, più il cliente come utente esterno del portale.</div>
+        </div>
+        <p class="domanda"><strong>Da decidere:</strong> chi userà davvero il gestionale nei prossimi dodici mesi, oltre a Massi? Se nessuno, i ruoli possono aspettare e resta solo il portale cliente.</p>
+      </article>
+
+      <article class="contrasto">
+        <div class="testa"><span class="num">D3</span><h3>Ordine dei lavori</h3></div>
+        <div class="confronto">
+          <div><b>Oggi</b>La roadmap mette in fila categorie materie prime, lista spesa, anagrafica attrezzature con ammortamento, magazzino, attrezzature per evento, profili beverage.</div>
+          <div><b>Il piano chiede</b>Prima anagrafiche affidabili, scheda telefonata e portale; magazzino solo dopo. L'ammortamento delle attrezzature non compare.</div>
+        </div>
+        <p class="domanda"><strong>Da decidere:</strong> il piano sostituisce le priorità della roadmap? La sezione 6 propone un ordine unico.</p>
+      </article>
+
+      <article class="contrasto">
+        <div class="testa"><span class="num">D4</span><h3>Stati del preventivo e dell'evento</h3></div>
+        <div class="confronto">
+          <div><b>Oggi</b>Il preventivo ha cinque stati (bozza, inviato, confermato, rifiutato, scaduto); la specifica prevede per l'evento pianificato, in corso, concluso, annullato.</div>
+          <div><b>Il piano chiede</b>Dieci stati in un unico percorso: bozza, dati da verificare, inviato, da approvare, accettato, bloccato D-8, in preparazione, eseguito, consuntivato, annullato.</div>
+        </div>
+        <p class="domanda"><strong>Da decidere:</strong> un solo percorso di stati per preventivo ed evento insieme, o due oggetti distinti con stati propri collegati fra loro?</p>
+      </article>
+
+      <article class="contrasto">
+        <div class="testa"><span class="num">D5</span><h3>Ambiente di prova e reversibilità</h3></div>
+        <div class="confronto">
+          <div><b>Oggi</b>Esiste solo l'ambiente di produzione: lo sviluppo in locale lavora sui dati reali. Le modifiche al database sono solo additive, mai annullate.</div>
+          <div><b>Il piano chiede</b>Ambiente di test separato, modifiche al database reversibili, backup verificato con prova di ripristino prima di ogni intervento sulle anagrafiche.</div>
+        </div>
+        <p class="domanda"><strong>Da decidere:</strong> attivare un secondo progetto di prova prima di toccare le anagrafiche (N5). Consigliato: è la condizione per fare la pulizia dati in sicurezza.</p>
+      </article>
+
+      <article class="contrasto">
+        <div class="testa"><span class="num">D6</span><h3>Il caso «5 kg a 8,55 €»</h3></div>
+        <div class="confronto">
+          <div><b>Oggi</b>Il calcolo gestisce già le confezioni: con unità d'acquisto «confezione» e 5000 g per confezione il costo risulta 1,71 €/kg, come chiede il test DAT-01 del piano.</div>
+          <div><b>Il piano osserva</b>Costi mostrati come 8,55 €/kg, cioè confezione registrata come se fosse un chilo.</div>
+        </div>
+        <p class="domanda"><strong>Da verificare:</strong> quali materie prime sono inserite così. Se il problema è nei dati e nella chiarezza del modulo, la correzione è più piccola di un nuovo modello; resta comunque valida la richiesta di storico prezzi e prodotti fornitore (N5).</p>
+      </article>
+
+      <article class="contrasto">
+        <div class="testa"><span class="num">D7</span><h3>Richieste precedenti non citate dal piano</h3></div>
+        <div class="confronto">
+          <div><b>Aperte in roadmap</b>Profili beverage a pacchetto con prezzo (CL-12, ferma su quattro domande), punti 6–10 della checklist di agosto mai ricevuti, ammortamento attrezzature.</div>
+          <div><b>Nel piano</b>Nessuna di queste voci compare.</div>
+        </div>
+        <p class="domanda"><strong>Da decidere:</strong> questo piano sostituisce la checklist di agosto? Se sì, le tre voci si chiudono o si rimandano; se no, vanno ricollocate nel nuovo ordine.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="audit">
+    <p class="eyebrow">5 · Domande tecniche del piano</p>
+    <h2>Risposte all'audit richiesto al §16</h2>
+    <p class="intro">Il piano apre con una «fase 0» di verifica tecnica. Buona parte delle risposte è già disponibile.</p>
+    <div class="tabella">
+      <table class="audit">
+        <thead><tr><th>Domanda</th><th>Risposta</th></tr></thead>
+        <tbody>
+          <tr><td>Schema del database e migrazioni</td><td>Postgres su Supabase, dieci migrazioni applicate, tutte additive. Coprono materie prime, consumabili, ricette con sotto-ricette, menu, bevande, profili beverage, clienti in forma minima e preventivi. Non esistono ancora evento, pagamento, personale, attrezzatura né magazzino.</td></tr>
+          <tr><td>Come sono rappresentati quantità, unità, resa, prezzo e snapshot</td><td>Unità chiuse (acquisto kg, l, pz, confezione; uso g, ml, pz) con fattore di conversione esplicito e nessuna conversione peso/volume; resa 1–100%; un solo prezzo per materia prima, sovrascritto a ogni modifica; importi in centesimi interi; all'invio si congelano i costi unitari di ogni riga, beveraggio compreso.</td></tr>
+          <tr><td>Autenticazione e ruoli</td><td>Accesso con email e password tramite Supabase, con recupero password. Un solo utente; ogni dato è isolato per utente a livello di database. Nessun ruolo, nessun secondo fattore.</td></tr>
+          <tr><td>Generazione e conservazione dei PDF</td><td>Generati sul server a ogni richiesta, non archiviati: il PDF di un preventivo inviato viene ricostruito dai costi congelati. L'archivio documenti era previsto nell'ultima fase della specifica.</td></tr>
+          <tr><td>Email, code di processi, log degli errori</td><td>Nessun servizio email (solo i messaggi di Supabase per il recupero password), nessuna coda, nessun processo programmato, nessuno strumento di monitoraggio oltre ai log standard dell'hosting.</td></tr>
+          <tr><td>Backup e ripristino</td><td>Affidati ai backup automatici di Supabase, la cui durata dipende dal piano attivo e va verificata. Nessuna prova di ripristino documentata. L'esportazione manuale completa prevista dalla specifica non è stata realizzata.</td></tr>
+          <tr><td>Dati migrabili in automatico</td><td>Da contare sul database attuale (il piano parla di circa 100 materie prime e 26 ricette). La marca e il fornitore preferito esistono già e permettono un primo passaggio automatico a «prodotto fornitore»; categorie (testo libero, quasi tutte «dispensa»), duplicati e prezzi sospetti richiedono revisione manuale.</td></tr>
+          <tr><td>Ambienti separati</td><td>No: un solo ambiente di produzione (Vercel e Supabase). Vedi D5.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="sequenza">
+    <p class="eyebrow">6 · Proposta</p>
+    <h2>Un ordine unico di lavoro</h2>
+    <p class="intro">Segue le fasi del piano del cliente, con un passo in più: l'evento va costruito prima della scheda telefonata e del portale, perché entrambi si appoggiano a lui. È una proposta da validare in review, non un impegno.</p>
+    <ol class="sequenza">
+      <li><h3>Fondamenta tecniche</h3><p>Ambiente di prova, backup con ripristino provato, esportazione completa dei dati. Condizione per tutto il resto (D5).</p></li>
+      <li><h3>Anagrafiche affidabili</h3><p>N5, a partire dalla verifica D6 sui dati reali. Assorbe CL-2 (categorie e codice interno).</p></li>
+      <li><h3>Cliente ed evento</h3><p>Anagrafica cliente completa, evento con luogo, orari e fuso, stati (D4), pagamenti, calendario. Coincide con la fase 2 della specifica, più N14.</p></li>
+      <li><h3>Scheda telefonata</h3><p>N1, con riporto automatico dei dati nel preventivo.</p></li>
+      <li><h3>Versioni, PDF ed email</h3><p>N4, N11 e la parte email di N3. Qui si scioglie D1 e si decide l'IVA (FEATURE-014).</p></li>
+      <li><h3>Portale cliente</h3><p>N2 con D-9, D-8 e centro notifiche; N13 per la parte privacy, con le regole date dal consulente.</p></li>
+      <li><h3>Operatività</h3><p>Lista spesa (CL-4), N7, N8, checklist attrezzature (CL-5 senza ammortamento), personale e turni.</p></li>
+      <li><h3>Consuntivo</h3><p>N6, poi ricerca e dashboard (N9) e uso da telefono (N10) quando ci sono dati da mostrare.</p></li>
+      <li><h3>Automazioni</h3><p>N15, N16, N17, magazzino (CL-11). Ruoli (N12) quando entra davvero una seconda persona (D2).</p></li>
+    </ol>
+    <div class="pausa">
+      <p class="eyebrow">Da mettere in pausa con questo ordine</p>
+      <ul>
+        <li><strong>CL-3, anagrafica attrezzature con ammortamento</strong>: il piano non la chiede; resta la sola checklist dentro l'operatività.</li>
+        <li><strong>CL-11, magazzino</strong>: il piano chiede esplicitamente di farlo dopo le anagrafiche.</li>
+        <li><strong>CL-12, profili beverage a pacchetto</strong>: in attesa delle quattro risposte e della conferma D7.</li>
+      </ul>
+    </div>
+    <p class="nota">Il piano chiede anche un prototipo approvato prima di ogni fase e test su tre casi reali: una cena privata piccola, un buffet medio, un evento complesso con bambini e allergie. È un metodo che conviene adottare così com'è.</p>
+  </section>
+
+  <footer>
+    Documento separato dalla roadmap di bug e feature, che resta il registro tecnico delle singole richieste. Gli identificativi N1–N17 e D1–D7 sono propri di questo documento.
+  </footer>
+
+</div>
