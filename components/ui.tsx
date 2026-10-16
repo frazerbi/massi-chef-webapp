@@ -26,7 +26,7 @@ export function TitoloPagina({
         <h1 className="text-2xl font-semibold">{titolo}</h1>
         {sottotitolo && <p className="mt-1 text-sm text-stone-500">{sottotitolo}</p>}
       </div>
-      {children && <div className="flex gap-2">{children}</div>}
+      {children && <div className="flex flex-wrap gap-2">{children}</div>}
     </div>
   );
 }

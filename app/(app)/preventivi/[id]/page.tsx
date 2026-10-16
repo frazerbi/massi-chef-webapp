@@ -139,6 +139,9 @@ export default async function PaginaPreventivo({
         >
           Anteprima PDF
         </a>
+        <Link href={`/preventivi/${preventivo.id}/spesa`} className={classiBottoneSecondario}>
+          Lista della spesa
+        </Link>
         {eBozza && (
           <form action={azioneCambiaStato}>
             <input type="hidden" name="id" value={preventivo.id} />

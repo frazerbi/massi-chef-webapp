@@ -67,6 +67,20 @@ Esempio: righe per 1.500 €, sconto 20% → il cliente vede 1.200 €; se il co
 
 > Nelle voci extra **non** esiste più la categoria "Sconto": una riga extra può solo aggiungere importo (costo e prezzo non possono essere negativi), quindi aumentava il totale invece di ridurlo. Usa il campo percentuale.
 
+## Lista della spesa del preventivo
+
+Dalla pagina di un preventivo, pulsante **Lista della spesa**: pagina interna (mai mostrata al cliente) con pulsante **Stampa / PDF**, una casella da spuntare per riga.
+
+- **Da dove arrivano le quantità**: ogni ricetta del preventivo viene scomposta nelle sue materie prime (sotto-ricette comprese) in base alle **porzioni** scritte sulla riga; si aggiungono le materie prime e i consumabili inseriti direttamente. La stessa materia prima usata in più piatti viene sommata in una riga sola.
+- **Sfrido**: applicato a tutto il cibo, ricette comprese (il food cost del preventivo invece non lo applica alle ricette: i due numeri differiscono di proposito). Ai consumabili no.
+- **Resa**: la quantità scritta in ricetta è quella pulita, quindi si compra il lordo. Branzino con resa 45%: 1,8 kg puliti → 4 kg da comprare.
+- **Arrotondamento**: per eccesso all'unità d'acquisto intera (kg, litro, confezione, pezzo). Ogni riga mostra sia quanto *serve* sia quanto *si compra*: per le piccole quantità vendute al kg ("serve 0,15 kg" → 1 kg) il totale riporta a parte anche il costo di quanto viene davvero usato.
+- **Raggruppamento**: per fornitore (il campo *fornitore preferito* dell'anagrafica), con il totale di ciascuno; gli articoli senza fornitore in coda. Il beveraggio è in una sezione a parte, coi colli già calcolati nel preventivo.
+
+Esempio: risotto con 1 kg di tastasal per 8 porzioni, 180 porzioni, sfrido 10% → serve 24,75 kg, si comprano 25 kg.
+
+Limiti attuali: usa ricette e prezzi **di oggi** anche per i preventivi già inviati; non sottrae ciò che è in magazzino; a buffet le porzioni da produrre sono quelle scritte sulla riga (per ora vanno corrette a mano).
+
 ## Limitazioni note
 
 ### Beveraggio: aggiungere più prodotti nella stessa categoria
