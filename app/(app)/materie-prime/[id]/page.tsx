@@ -1,5 +1,6 @@
 import FormMateriaPrima from "@/components/FormMateriaPrima";
 import { classiBottoneSecondario, Riquadro, TitoloPagina } from "@/components/ui";
+import { elencoCategorieMateriaPrima } from "@/lib/db/categorieMateriaPrima";
 import { materiaPrimaPerId } from "@/lib/db/materiePrime";
 import { azioneAggiornaMateriaPrima, azioneEliminaMateriaPrima } from "../actions";
 
@@ -9,7 +10,10 @@ export default async function PaginaModificaMateriaPrima({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const materiaPrima = await materiaPrimaPerId(id);
+  const [materiaPrima, categorie] = await Promise.all([
+    materiaPrimaPerId(id),
+    elencoCategorieMateriaPrima(),
+  ]);
 
   return (
     <>
@@ -22,7 +26,9 @@ export default async function PaginaModificaMateriaPrima({
         </form>
       </TitoloPagina>
       <Riquadro>
-        <FormMateriaPrima azione={azioneAggiornaMateriaPrima} materiaPrima={materiaPrima} />
+        <FormMateriaPrima azione={azioneAggiornaMateriaPrima} materiaPrima={materiaPrima}
+          categorie={categorie}
+        />
       </Riquadro>
     </>
   );

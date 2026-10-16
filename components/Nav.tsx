@@ -3,11 +3,10 @@ import { esci } from "@/app/login/actions";
 
 const VOCI = [
   { href: "/", etichetta: "Dashboard" },
-  { href: "/materie-prime", etichetta: "Materie prime" },
-  { href: "/consumabili", etichetta: "Consumabili" },
+  // CL-2: materie prime, bevande e consumabili raccolti in un'unica voce
+  { href: "/prodotti", etichetta: "Prodotti" },
   { href: "/ricette", etichetta: "Ricette" },
   { href: "/menu", etichetta: "Menu" },
-  { href: "/bevande", etichetta: "Bevande" },
   { href: "/profili-beveraggio", etichetta: "Profili beveraggio" },
   { href: "/preventivi", etichetta: "Preventivi" },
   { href: "/impostazioni", etichetta: "Impostazioni" },

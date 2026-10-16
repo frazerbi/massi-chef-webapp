@@ -117,9 +117,19 @@ export interface Impostazioni {
   validita_preventivo_giorni: number;
 }
 
+/** CL-2: categoria delle materie prime, lista per utente modificabile (migrazione 0011) */
+export interface CategoriaMateriaPrima extends RigaBase {
+  nome: string;
+  ordine: number;
+  deleted_at: string | null;
+}
+
 export interface MateriaPrima extends RigaBase {
   nome: string;
+  /** @deprecated testo libero di fase 1, sostituito da categoria_id (CL-2): non piu' letto ne' scritto */
   categoria: string;
+  /** CL-2: null = senza categoria (dati precedenti alla 0011 non riconosciuti) */
+  categoria_id: string | null;
   /** FEATURE-009: marca del prodotto, descrittiva — non entra nei calcoli */
   marca: string | null;
   unita_acquisto: UnitaAcquisto;

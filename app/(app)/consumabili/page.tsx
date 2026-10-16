@@ -73,7 +73,7 @@ export default async function PaginaConsumabili() {
         </div>
       </Riquadro>
 
-      <div className="mt-6">
+      <div id="nuovo" className="mt-6 scroll-mt-4">
         <Riquadro titolo="Nuovo consumabile">
           <FormConsumabile azione={azioneCreaConsumabile} />
         </Riquadro>

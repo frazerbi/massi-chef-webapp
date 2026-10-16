@@ -81,6 +81,15 @@ Esempio: risotto con 1 kg di tastasal per 8 porzioni, 180 porzioni, sfrido 10% �
 
 Limiti attuali: usa ricette e prezzi **di oggi** anche per i preventivi già inviati; non sottrae ciò che è in magazzino; a buffet le porzioni da produrre sono quelle scritte sulla riga (per ora vanno corrette a mano).
 
+## Prodotti e categorie
+
+La voce di menu **Prodotti** raccoglie in un solo elenco materie prime, bevande e consumabili, a categorie che si aprono al clic, con una ricerca per nome o marca. Ordine: le categorie delle materie prime → **Bevande** (acque, vini, birra, … caffè) → **Consumabili apparecchio** → **Consumabili cucina**. Cliccando un prodotto si apre la sua scheda; i pulsanti «+ Materia prima / Bevanda / Consumabile» portano ai moduli di inserimento.
+
+- **Le categorie delle materie prime le decidi tu**: *Impostazioni → Categorie delle materie prime* (aggiungi, rinomina, sposta su/giù). Si parte da Carne, Pesce, Ortofrutta, Latticini e uova, Dispensa, Surgelati, Panetteria.
+- **Una categoria si elimina solo se è vuota**: sposta prima le sue materie prime in un'altra categoria, dalla scheda di ciascuna.
+- **La categoria è obbligatoria** per ogni nuova materia prima. Quelle inserite prima che esistesse la lista sono state classificate in base a quanto c'era scritto. Le materie prime che non è stato possibile classificare compaiono in **«Senza categoria»**, da sistemare a mano.
+- **Bevande e consumabili non hanno queste categorie**: si raggruppano per tipo di bevanda e per apparecchio/cucina, come già nel preventivo. Le tre anagrafiche restano separate perché hanno campi e calcoli diversi.
+
 ## Limitazioni note
 
 ### Beveraggio: aggiungere più prodotti nella stessa categoria

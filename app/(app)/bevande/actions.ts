@@ -28,16 +28,19 @@ function leggiForm(formData: FormData): InputBevanda {
 export async function azioneCreaBevanda(formData: FormData): Promise<void> {
   await creaBevanda(leggiForm(formData));
   revalidatePath("/bevande");
+  revalidatePath("/prodotti");
 }
 
 export async function azioneAggiornaBevanda(formData: FormData): Promise<void> {
   const id = parseTesto(formData.get("id"), "id");
   await aggiornaBevanda(id, leggiForm(formData));
   revalidatePath("/bevande");
+  revalidatePath("/prodotti");
   redirect("/bevande");
 }
 
 export async function azioneEliminaBevanda(formData: FormData): Promise<void> {
   await eliminaBevanda(parseTesto(formData.get("id"), "id"));
   revalidatePath("/bevande");
+  revalidatePath("/prodotti");
 }

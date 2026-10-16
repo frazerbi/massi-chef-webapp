@@ -9,14 +9,22 @@ import {
 } from "@/components/ui";
 import { costoUnitaUsoCent } from "@/lib/calc/materiaPrima";
 import { formattaEuro } from "@/lib/calc/money";
+import { elencoCategorieMateriaPrima } from "@/lib/db/categorieMateriaPrima";
 import { conteggioUsoInRicette, elencoMateriePrime } from "@/lib/db/materiePrime";
 import { azioneAggiornaPrezzo, azioneCreaMateriaPrima } from "./actions";
 
-export default async function PaginaMateriePrime() {
-  const [materiePrime, usoInRicette] = await Promise.all([
+export default async function PaginaMateriePrime({
+  searchParams,
+}: {
+  searchParams: Promise<{ categoria?: string }>;
+}) {
+  const { categoria } = await searchParams;
+  const [materiePrime, usoInRicette, categorie] = await Promise.all([
     elencoMateriePrime(),
     conteggioUsoInRicette(),
+    elencoCategorieMateriaPrima(),
   ]);
+  const nomeCategoria = new Map(categorie.map((c) => [c.id, c.nome]));
 
   return (
     <>
@@ -24,6 +32,9 @@ export default async function PaginaMateriePrime() {
         titolo="Materie prime"
         sottotitolo="Il costo per unità d'uso tiene conto di conversione e resa: è la base di ogni food cost."
       >
+        <Link href="/prodotti" className="text-sm text-stone-500 hover:underline">
+          Vista per categorie
+        </Link>
         <Link href="/materie-prime/guida" className="text-sm text-stone-500 hover:underline">
           Come si calcola il costo?
         </Link>
@@ -54,7 +65,9 @@ export default async function PaginaMateriePrime() {
                     ) : null}
                   </td>
                   <td className={classiTd}>
-                    {mp.categoria}
+                    {(mp.categoria_id && nomeCategoria.get(mp.categoria_id)) ?? (
+                      <span className="text-stone-400">Senza categoria</span>
+                    )}
                   </td>
                   <td className={classiTd}>
                     {formattaEuro(mp.prezzo_acquisto_cent)}/{mp.unita_acquisto}
@@ -104,9 +117,13 @@ export default async function PaginaMateriePrime() {
         </div>
       </Riquadro>
 
-      <div className="mt-6">
+      <div id="nuova" className="mt-6 scroll-mt-4">
         <Riquadro titolo="Nuova materia prima">
-          <FormMateriaPrima azione={azioneCreaMateriaPrima} />
+          <FormMateriaPrima
+            azione={azioneCreaMateriaPrima}
+            categorie={categorie}
+            categoriaPredefinita={categoria}
+          />
         </Riquadro>
       </div>
     </>

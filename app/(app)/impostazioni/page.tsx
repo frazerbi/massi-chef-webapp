@@ -1,15 +1,30 @@
 import {
   classiBottone,
+  classiBottoneSecondario,
   classiInput,
   Etichetta,
   Riquadro,
   TitoloPagina,
 } from "@/components/ui";
+import {
+  conteggioMateriePrimePerCategoria,
+  elencoCategorieMateriaPrima,
+} from "@/lib/db/categorieMateriaPrima";
 import { ottieniImpostazioni } from "@/lib/db/impostazioni";
-import { azioneSalvaImpostazioni } from "./actions";
+import {
+  azioneCreaCategoria,
+  azioneEliminaCategoria,
+  azioneRinominaCategoria,
+  azioneSalvaImpostazioni,
+  azioneSpostaCategoria,
+} from "./actions";
 
 export default async function PaginaImpostazioni() {
-  const impostazioni = await ottieniImpostazioni();
+  const [impostazioni, categorie, conteggi] = await Promise.all([
+    ottieniImpostazioni(),
+    elencoCategorieMateriaPrima(),
+    conteggioMateriePrimePerCategoria(),
+  ]);
 
   return (
     <>
@@ -92,6 +107,81 @@ export default async function PaginaImpostazioni() {
           </div>
         </form>
       </Riquadro>
+
+      <div id="categorie" className="mt-6 scroll-mt-4">
+        <Riquadro titolo="Categorie delle materie prime">
+          <p className="mb-4 text-sm text-stone-500">
+            Raggruppano le materie prime nella schermata Prodotti, in quest&apos;ordine. Una
+            categoria si può eliminare solo quando è vuota: sposta prima le sue materie prime.
+          </p>
+          <ul className="divide-y divide-stone-100">
+            {categorie.map((c, i) => {
+              const quante = conteggi.get(c.id) ?? 0;
+              return (
+                <li key={c.id} className="flex flex-wrap items-center gap-2 py-2">
+                  <form action={azioneRinominaCategoria} className="flex min-w-0 flex-1 gap-2">
+                    <input type="hidden" name="id" value={c.id} />
+                    <input
+                      name="nome"
+                      required
+                      defaultValue={c.nome}
+                      aria-label={`Nome della categoria ${c.nome}`}
+                      className={`${classiInput} mt-0 min-w-0 flex-1`}
+                    />
+                    <button type="submit" className={classiBottoneSecondario}>
+                      Rinomina
+                    </button>
+                  </form>
+                  <span className="w-28 text-xs text-stone-500">
+                    {quante === 1 ? "1 materia prima" : `${quante} materie prime`}
+                  </span>
+                  <div className="flex gap-1">
+                    {(["su", "giu"] as const).map((direzione) => (
+                      <form key={direzione} action={azioneSpostaCategoria}>
+                        <input type="hidden" name="id" value={c.id} />
+                        <input type="hidden" name="direzione" value={direzione} />
+                        <button
+                          type="submit"
+                          disabled={direzione === "su" ? i === 0 : i === categorie.length - 1}
+                          aria-label={direzione === "su" ? "Sposta su" : "Sposta giù"}
+                          className={`${classiBottoneSecondario} disabled:opacity-30`}
+                        >
+                          {direzione === "su" ? "↑" : "↓"}
+                        </button>
+                      </form>
+                    ))}
+                    {quante === 0 && (
+                      <form action={azioneEliminaCategoria}>
+                        <input type="hidden" name="id" value={c.id} />
+                        <button type="submit" className={classiBottoneSecondario}>
+                          Elimina
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+            {categorie.length === 0 && (
+              <li className="py-2 text-sm text-stone-500">
+                Nessuna categoria: aggiungine almeno una per poter inserire materie prime.
+              </li>
+            )}
+          </ul>
+          <form action={azioneCreaCategoria} className="mt-4 flex flex-wrap gap-2">
+            <input
+              name="nome"
+              required
+              placeholder="Nuova categoria (es. Salumi)"
+              aria-label="Nome della nuova categoria"
+              className={`${classiInput} mt-0 min-w-0 flex-1`}
+            />
+            <button type="submit" className={classiBottone}>
+              Aggiungi categoria
+            </button>
+          </form>
+        </Riquadro>
+      </div>
     </>
   );
 }

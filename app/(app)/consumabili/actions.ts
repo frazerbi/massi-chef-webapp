@@ -41,16 +41,19 @@ function leggiForm(formData: FormData): InputConsumabile {
 export async function azioneCreaConsumabile(formData: FormData): Promise<void> {
   await creaConsumabile(leggiForm(formData));
   revalidatePath("/consumabili");
+  revalidatePath("/prodotti");
 }
 
 export async function azioneAggiornaConsumabile(formData: FormData): Promise<void> {
   const id = parseTesto(formData.get("id"), "id");
   await aggiornaConsumabile(id, leggiForm(formData));
   revalidatePath("/consumabili");
+  revalidatePath("/prodotti");
   redirect("/consumabili");
 }
 
 export async function azioneEliminaConsumabile(formData: FormData): Promise<void> {
   await eliminaConsumabile(parseTesto(formData.get("id"), "id"));
   revalidatePath("/consumabili");
+  revalidatePath("/prodotti");
 }

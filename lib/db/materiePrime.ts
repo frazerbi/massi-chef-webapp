@@ -1,3 +1,4 @@
+import { verificaCategoriaMateriaPrima } from "./categorieMateriaPrima";
 import { creaClientServer } from "./server";
 import type { MateriaPrima, UnitaAcquisto, UnitaUso } from "./types";
 import {
@@ -10,7 +11,8 @@ import {
 
 export interface InputMateriaPrima {
   nome: string;
-  categoria: string;
+  /** CL-2: obbligatoria, deve essere una categoria attiva dell'utente */
+  categoria_id: string;
   /** FEATURE-009: marca del prodotto (opzionale, descrittiva) */
   marca?: string | null;
   unita_acquisto: UnitaAcquisto;
@@ -23,8 +25,9 @@ export interface InputMateriaPrima {
   note?: string | null;
 }
 
-function validaInput(input: InputMateriaPrima) {
+async function validaInput(input: InputMateriaPrima) {
   const nome = validaTesto(input.nome, "nome");
+  await verificaCategoriaMateriaPrima(input.categoria_id);
   validaCentesimi(input.prezzo_acquisto_cent, "prezzo di acquisto");
   validaQuantita(input.fattore_conversione, "fattore di conversione");
   validaResa(input.resa_percentuale);
@@ -58,7 +61,7 @@ export async function creaMateriaPrima(input: InputMateriaPrima): Promise<string
   const supabase = await creaClientServer();
   const { data, error } = await supabase
     .from("materia_prima")
-    .insert(validaInput(input))
+    .insert(await validaInput(input))
     .select("id")
     .single();
   if (error) throw new Error(`Creazione materia prima fallita: ${error.message}`);
@@ -72,7 +75,7 @@ export async function aggiornaMateriaPrima(
   const supabase = await creaClientServer();
   const { error } = await supabase
     .from("materia_prima")
-    .update(validaInput(input))
+    .update(await validaInput(input))
     .eq("id", id);
   if (error) throw new Error(`Aggiornamento materia prima fallito: ${error.message}`);
 }

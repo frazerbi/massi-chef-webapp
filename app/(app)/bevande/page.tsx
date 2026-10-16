@@ -76,7 +76,7 @@ export default async function PaginaBevande() {
         </div>
       </Riquadro>
 
-      <div className="mt-6">
+      <div id="nuova" className="mt-6 scroll-mt-4">
         <Riquadro titolo="Nuova bevanda">
           <FormBevanda azione={azioneCreaBevanda} />
         </Riquadro>

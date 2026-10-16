@@ -24,7 +24,7 @@ function leggiForm(formData: FormData): InputMateriaPrima {
   if (!coppia) throw new Error("Unità di misura non ammessa");
   return {
     nome: parseTesto(formData.get("nome"), "nome"),
-    categoria: parseTesto(formData.get("categoria"), "categoria"),
+    categoria_id: parseTesto(formData.get("categoria_id"), "categoria"),
     marca: parseTestoOpzionale(formData.get("marca")),
     unita_acquisto: coppia.acquisto,
     unita_uso: coppia.uso,
@@ -40,6 +40,7 @@ function leggiForm(formData: FormData): InputMateriaPrima {
 export async function azioneCreaMateriaPrima(formData: FormData): Promise<void> {
   await creaMateriaPrima(leggiForm(formData));
   revalidatePath("/materie-prime");
+  revalidatePath("/prodotti");
   redirect("/materie-prime");
 }
 
@@ -47,6 +48,7 @@ export async function azioneAggiornaMateriaPrima(formData: FormData): Promise<vo
   const id = parseTesto(formData.get("id"), "id");
   await aggiornaMateriaPrima(id, leggiForm(formData));
   revalidatePath("/materie-prime");
+  revalidatePath("/prodotti");
   redirect("/materie-prime");
 }
 
@@ -54,11 +56,13 @@ export async function azioneAggiornaPrezzo(formData: FormData): Promise<void> {
   const id = parseTesto(formData.get("id"), "id");
   await aggiornaPrezzoMateriaPrima(id, parseEuroCent(formData.get("prezzo"), "prezzo"));
   revalidatePath("/materie-prime");
+  revalidatePath("/prodotti");
 }
 
 export async function azioneEliminaMateriaPrima(formData: FormData): Promise<void> {
   const id = parseTesto(formData.get("id"), "id");
   await eliminaMateriaPrima(id);
   revalidatePath("/materie-prime");
+  revalidatePath("/prodotti");
   redirect("/materie-prime");
 }

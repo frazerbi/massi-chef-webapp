@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { classiBottone, classiInput, Etichetta } from "@/components/ui";
-import { ALLERGENI_UE, type MateriaPrima } from "@/lib/db/types";
+import { ALLERGENI_UE, type CategoriaMateriaPrima, type MateriaPrima } from "@/lib/db/types";
 
 /**
  * Form condiviso creazione/modifica materia prima. L'unità è scelta come
@@ -28,11 +28,21 @@ const UNITA_USO: Record<string, string> = { kg: "g", l: "ml", pz: "pz", conf: "p
 export default function FormMateriaPrima({
   azione,
   materiaPrima,
+  categorie,
+  categoriaPredefinita,
 }: {
   azione: (formData: FormData) => Promise<void>;
   materiaPrima?: MateriaPrima;
+  /** CL-2: categorie attive, nell'ordine scelto dall'utente */
+  categorie: CategoriaMateriaPrima[];
+  /** preselezione per una nuova materia prima (link "aggiungi in…" da Prodotti) */
+  categoriaPredefinita?: string;
 }) {
   const mp = materiaPrima;
+  // una categoria eliminata non e' piu' in elenco: si sceglie di nuovo
+  const categoriaIniziale =
+    [mp?.categoria_id, categoriaPredefinita].find((id) => categorie.some((c) => c.id === id)) ??
+    "";
   const [unita, setUnita] = useState<string>(mp?.unita_acquisto ?? "kg");
   const [fattore, setFattore] = useState<string>(mp ? String(mp.fattore_conversione) : "1000");
   const [resa, setResa] = useState<string>(mp ? String(mp.resa_percentuale) : "100");
@@ -51,20 +61,26 @@ export default function FormMateriaPrima({
         <input name="nome" required defaultValue={mp?.nome} className={classiInput} />
       </Etichetta>
       <Etichetta testo="Categoria">
-        <input
-          name="categoria"
+        <select
+          name="categoria_id"
           required
-          defaultValue={mp?.categoria ?? "dispensa"}
-          list="categorie-mp"
+          defaultValue={categoriaIniziale}
           className={classiInput}
-        />
-        <datalist id="categorie-mp">
-          {["ortofrutta", "carne", "pesce", "dispensa", "latticini", "surgelati", "panetteria"].map(
-            (c) => (
-              <option key={c} value={c} />
-            ),
-          )}
-        </datalist>
+        >
+          <option value="" disabled>
+            Scegli…
+          </option>
+          {categorie.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nome}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-stone-500">
+          <Link href="/impostazioni#categorie" className="underline">
+            Aggiungi o rinomina categorie
+          </Link>
+        </p>
       </Etichetta>
       <Etichetta testo="Marca (opzionale, es. Mutti)">
         <input name="marca" defaultValue={mp?.marca ?? ""} className={classiInput} />

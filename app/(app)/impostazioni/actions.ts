@@ -1,8 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import {
+  creaCategoriaMateriaPrima,
+  eliminaCategoriaMateriaPrima,
+  rinominaCategoriaMateriaPrima,
+  spostaCategoriaMateriaPrima,
+} from "@/lib/db/categorieMateriaPrima";
 import { aggiornaImpostazioni } from "@/lib/db/impostazioni";
-import { parseEuroCent, parseNumero } from "@/lib/form";
+import { parseEuroCent, parseNumero, parseTesto } from "@/lib/form";
 
 export async function azioneSalvaImpostazioni(formData: FormData): Promise<void> {
   await aggiornaImpostazioni({
@@ -25,4 +31,37 @@ export async function azioneSalvaImpostazioni(formData: FormData): Promise<void>
     ),
   });
   revalidatePath("/impostazioni");
+}
+
+// ---------- CL-2: categorie delle materie prime ----------
+
+function aggiornaPagineCategorie() {
+  revalidatePath("/impostazioni");
+  revalidatePath("/prodotti");
+  revalidatePath("/materie-prime");
+}
+
+export async function azioneCreaCategoria(formData: FormData): Promise<void> {
+  await creaCategoriaMateriaPrima(parseTesto(formData.get("nome"), "nome categoria"));
+  aggiornaPagineCategorie();
+}
+
+export async function azioneRinominaCategoria(formData: FormData): Promise<void> {
+  await rinominaCategoriaMateriaPrima(
+    parseTesto(formData.get("id"), "id"),
+    parseTesto(formData.get("nome"), "nome categoria"),
+  );
+  aggiornaPagineCategorie();
+}
+
+export async function azioneSpostaCategoria(formData: FormData): Promise<void> {
+  const direzione = parseTesto(formData.get("direzione"), "direzione");
+  if (direzione !== "su" && direzione !== "giu") throw new Error("Direzione non valida");
+  await spostaCategoriaMateriaPrima(parseTesto(formData.get("id"), "id"), direzione);
+  aggiornaPagineCategorie();
+}
+
+export async function azioneEliminaCategoria(formData: FormData): Promise<void> {
+  await eliminaCategoriaMateriaPrima(parseTesto(formData.get("id"), "id"));
+  aggiornaPagineCategorie();
 }
