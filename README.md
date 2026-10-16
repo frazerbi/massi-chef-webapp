@@ -53,6 +53,12 @@ Il campo che genera più dubbi in fase di inserimento è `fattore_conversione`. 
 - **Non confondere con la resa**: lo scarto di lavorazione (es. pulizia del pesce) è un campo separato, `resa_percentuale`, applicato dopo nella stessa formula.
 - **Vincolo**: deve essere sempre `> 0` (`unita_acquisto` e `unita_uso` devono restare dimensionalmente coerenti — mai conversioni implicite peso↔volume, invariante §4 di `CLAUDE.md`).
 
+## Cosa vede il cliente nel PDF del preventivo
+
+Dal 16/10/2026 il PDF mostra **solo il prezzo finale**: le voci sono elencate per categoria con descrizione e quantità (es. «Risotto ai funghi — 120 porzioni»), **senza prezzo unitario né totale di riga**. In fondo c'è il totale proposto, preceduto da lordo e sconto se c'è uno sconto. Il beveraggio resta in dettaglio con le quantità, come prima. Vale per tutti i preventivi, senza opzioni.
+
+I prezzi delle righe restano nella pagina interna del preventivo e servono comunque: la loro somma è il totale proposto, a meno che non lo scrivi a mano.
+
 ## Sconto sul preventivo
 
 Lo sconto è una **percentuale sul preventivo**, non una riga: si imposta in *Preventivi → (preventivo) → Dati del preventivo*, nei campi **Sconto (%)** e **Motivo dello sconto**. Vale solo finché il preventivo è in bozza, come tutti gli altri dati.

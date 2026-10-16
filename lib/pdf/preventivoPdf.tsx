@@ -1,6 +1,7 @@
 /**
- * PDF del preventivo (documento per il cliente: mostra i PREZZI, mai i costi
- * interni). Generato lato server dall'API route /api/preventivi/[id]/pdf.
+ * PDF del preventivo (documento per il cliente: mai i costi interni, e dal
+ * 16/10/2026 nemmeno i prezzi di riga — solo voci, quantità e prezzo finale).
+ * Generato lato server dall'API route /api/preventivi/[id]/pdf.
  */
 
 import {
@@ -61,16 +62,17 @@ function arrotondaQuantita(quantita: number): number {
   return Math.round(quantita * 1000) / 1000;
 }
 
-function RigaPrezzo({
+/** Riga voce del PDF: descrizione e quantità, senza prezzo unitario né totale
+ * di riga (decisione del 16/10/2026: al cliente si mostra solo il prezzo
+ * finale). I prezzi di riga restano nel sistema e concorrono al lordo. */
+function RigaVoce({
   descrizione,
   quantita,
   unita,
-  prezzoUnitarioCent,
 }: {
   descrizione: string;
   quantita: number;
   unita: string;
-  prezzoUnitarioCent: number | null;
 }) {
   const quantitaArrotondata = arrotondaQuantita(quantita);
   return (
@@ -79,14 +81,6 @@ function RigaPrezzo({
       <Text style={stili.colNumero}>
         {quantitaArrotondata}
         {unita ? ` ${unita}` : ""}
-      </Text>
-      <Text style={stili.colNumero}>
-        {prezzoUnitarioCent != null ? formattaEuro(prezzoUnitarioCent) : "—"}
-      </Text>
-      <Text style={stili.colNumero}>
-        {prezzoUnitarioCent != null
-          ? formattaEuro(Math.round(prezzoUnitarioCent * quantita))
-          : "—"}
       </Text>
     </View>
   );
@@ -169,10 +163,6 @@ function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
               Descrizione
             </Text>
             <Text style={[stili.colNumero, { fontFamily: "Helvetica-Bold" }]}>Qtà</Text>
-            <Text style={[stili.colNumero, { fontFamily: "Helvetica-Bold" }]}>
-              Prezzo unit.
-            </Text>
-            <Text style={[stili.colNumero, { fontFamily: "Helvetica-Bold" }]}>Totale</Text>
           </View>
           {gruppi.map((gruppo) => (
             <View key={gruppo.chiave}>
@@ -180,12 +170,11 @@ function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
                 {gruppo.etichetta}
               </Text>
               {gruppo.righe.map(({ riga }) => (
-                <RigaPrezzo
+                <RigaVoce
                   key={riga.id}
                   descrizione={riga.descrizione}
                   quantita={quantitaEffettivaRighe.get(riga.id) ?? Number(riga.quantita)}
                   unita={unitaRiga(riga, materiePrimePerId, consumabiliPerId)}
-                  prezzoUnitarioCent={riga.prezzo_unitario_cent}
                 />
               ))}
             </View>
@@ -220,7 +209,9 @@ function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
         )}
 
         <View style={stili.sezione}>
-          {/* FEATURE-021: con uno sconto il cliente vede lordo, sconto e netto */}
+          {/* FEATURE-021: con uno sconto il cliente vede lordo, sconto e netto.
+              Trattino ASCII, non il segno meno U+2212: Helvetica (font
+              standard del PDF) non ha quel glifo e lo omette in silenzio. */}
           {totali.scontoCent > 0 && (
             <>
               <Text style={{ textAlign: "right" }}>
@@ -228,7 +219,7 @@ function DocumentoPreventivo({ calcolo }: { calcolo: CalcoloPreventivo }) {
               </Text>
               <Text style={{ textAlign: "right" }}>
                 {preventivo.sconto_descrizione ?? "Sconto"} (
-                {Number(preventivo.sconto_pct)}%): −{formattaEuro(totali.scontoCent)}
+                {Number(preventivo.sconto_pct)}%): -{formattaEuro(totali.scontoCent)}
               </Text>
             </>
           )}
